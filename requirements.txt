@@ -5,4 +5,5 @@ attrs==19.1.0
 chardet==3.0.4
 idna==2.8
 multidict==4.5.2
+selectolax==0.1.13
 yarl==1.3.0

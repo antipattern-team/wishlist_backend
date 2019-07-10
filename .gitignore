@@ -3,6 +3,7 @@
 
 #Python
 venv/
+__pycache__
 
 #Convinient stuff
 test.py
