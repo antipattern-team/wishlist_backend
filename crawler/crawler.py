@@ -9,6 +9,7 @@ FETCHES_PER_SECOND = None
 CATEGORY_SELECTOR = 'a.range-catalog-list__link'
 PRODUCT_SELECTOR = 'div.product-compact__spacer'
 REF = 'a'
+IMG = 'img'
 NAME = 'span.product-compact__name'
 TYPE = 'span.product-compact__type'
 DESC = 'span.product-compact__description'
@@ -62,9 +63,14 @@ async def idler(idle_c: IdleCounter):
 
 
 async def reseter(c: Counter):
+    time = 0
     while True:
         await asyncio.sleep(1)
         c.reset()
+
+        time += 1
+        if time and (time % 10 == 0):
+            print(f'Working for {time} secs now!', file=sys.stderr)
 
 
 async def middleware(input: asyncio.Queue, output: asyncio.Queue, c: Counter, idle_c: IdleCounter):
@@ -109,7 +115,6 @@ def processor(html):
     category_list = False
     for node in HTMLParser(html).css(CATEGORY_SELECTOR):
         urls.append(node.attributes['href'])
-        print(f'Adding {node.text()}', file=sys.stderr)
         category_list = True
 
     if category_list:
@@ -117,35 +122,26 @@ def processor(html):
 
     for node in HTMLParser(html).css(PRODUCT_SELECTOR):
         product = list()
-        # print('[processor] PRODUCT REF:')
-        # print(node.css_first(REF).attributes['href'])
         product.append(node.css_first(REF).attributes['href'])
-        # print('[processor] PRODUCT NAME:')
-        # print(node.css_first(NAME).text())
+        product.append(node.css_first(IMG).attributes['src'])
         product.append(node.css_first(NAME).text())
-        # print('[processor] PRODUCT TYPE:')
-        # print(node.css_first(TYPE).text())
-        product.append(node.css_first(TYPE).text())
-        # print('[processor] PRODUCT DESC:')
+        tp = node.css_first(TYPE).text()
+        tp = tp.split('\n')
+        tp = [el.strip() for el in tp if el.strip() is not '']
+        tp = ' '.join(tp)
+        product.append(tp)
+
         desc = node.css_first(DESC)
         if desc:
-            # print(desc.text)
             desc = desc.text()
-            desc = desc.split('\n')
-            desc = [el.strip() for el in desc if el.strip() is not '']
-            desc = ' '.join(desc)
 
         product.append(desc or '')
-        # print('[processor] PRODUCT PRICE:')
-        # print(node.css_first(PRICE).text())
         product.append(node.css_first(PRICE).text())
-        # print()
         data.append(product)
 
     next_page = HTMLParser(html).css_first(NEXT_PAGE)
     if next_page:
         urls.append(next_page.attributes['href'])
-        print('NEXT PAGE FOUND', file=sys.stderr)
 
     return data, urls
 
