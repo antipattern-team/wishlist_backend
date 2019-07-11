@@ -19,7 +19,7 @@ NEXT_PAGE = 'a.pagination__right'
 
 SAVE_FILE = 'db.txt'
 
-client = AsyncElasticsearch(hosts=['localhost'])
+client = AsyncElasticsearch(hosts=['localhost'])  # TODO: move to init
 
 
 class Counter:
@@ -127,26 +127,20 @@ def processor(html):
 
     for node in HTMLParser(html).css(PRODUCT_SELECTOR):
         product = dict()
-        # product.append(node.css_first(REF).attributes['href'])
         product['reference'] = node.css_first(REF).attributes['href']
-        # product.append(node.css_first(IMG).attributes['src'])
         product['image'] = node.css_first(IMG).attributes['src']
-        # product.append(node.css_first(NAME).text())
         product['name'] = node.css_first(NAME).text()
         tp = node.css_first(TYPE).text()
         tp = tp.split('\n')
         tp = [el.strip() for el in tp if el.strip() is not '']
         tp = ' '.join(tp)
-        # product.append(tp)
         product['type'] = tp
 
         desc = node.css_first(DESC)
         if desc:
             desc = desc.text()
 
-        # product.append(desc or '')
         product['description'] = desc or ''
-        # product.append(node.css_first(PRICE).text())
         product['price'] = node.css_first(PRICE).text()
         data.append(product)
 
