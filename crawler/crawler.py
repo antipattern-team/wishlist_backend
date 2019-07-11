@@ -93,11 +93,11 @@ async def middleware(input: asyncio.Queue, output: asyncio.Queue, c: Counter, id
 
 
 async def fetcher(input: asyncio.Queue, output: asyncio.Queue, save: asyncio.Queue):
-    while True:
-        url = await input.get()
+    async with aiohttp.ClientSession() as session:
+        while True:
+            url = await input.get()
 
-        # try:
-        async with aiohttp.ClientSession() as session:
+            # try:
             async with session.get(url) as html:
                 body = await html.read()
 
@@ -109,8 +109,8 @@ async def fetcher(input: asyncio.Queue, output: asyncio.Queue, save: asyncio.Que
                 for url in urls:
                     await output.put(url)
 
-        # except BaseException:
-        #     print(f'Exception while fetching {url}', file=sys.stderr)
+            # except BaseException:
+            #     print(f'Exception while fetching {url}', file=sys.stderr)
 
 
 def processor(html):
