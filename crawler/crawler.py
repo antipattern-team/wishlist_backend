@@ -2,6 +2,7 @@ import asyncio
 import aiohttp
 import sys
 from selectolax.parser import HTMLParser
+from elasticsearch_async import AsyncElasticsearch
 
 ROOT = 'https://m2.ikea.com/ru/ru/cat/tovary-functional/'
 FETCHES_PER_SECOND = None
@@ -17,6 +18,9 @@ PRICE = 'span.product-compact__price__value'
 NEXT_PAGE = 'a.pagination__right'
 
 SAVE_FILE = 'db.txt'
+
+client = AsyncElasticsearch(hosts=['localhost'])
+
 
 class Counter:
     def __init__(self):
@@ -108,6 +112,7 @@ async def fetcher(input: asyncio.Queue, output: asyncio.Queue, save: asyncio.Que
         # except BaseException:
         #     print(f'Exception while fetching {url}', file=sys.stderr)
 
+
 def processor(html):
     data = []
     urls = []
@@ -121,22 +126,28 @@ def processor(html):
         return None, urls
 
     for node in HTMLParser(html).css(PRODUCT_SELECTOR):
-        product = list()
-        product.append(node.css_first(REF).attributes['href'])
-        product.append(node.css_first(IMG).attributes['src'])
-        product.append(node.css_first(NAME).text())
+        product = dict()
+        # product.append(node.css_first(REF).attributes['href'])
+        product['reference'] = node.css_first(REF).attributes['href']
+        # product.append(node.css_first(IMG).attributes['src'])
+        product['image'] = node.css_first(IMG).attributes['src']
+        # product.append(node.css_first(NAME).text())
+        product['name'] = node.css_first(NAME).text()
         tp = node.css_first(TYPE).text()
         tp = tp.split('\n')
         tp = [el.strip() for el in tp if el.strip() is not '']
         tp = ' '.join(tp)
-        product.append(tp)
+        # product.append(tp)
+        product['type'] = tp
 
         desc = node.css_first(DESC)
         if desc:
             desc = desc.text()
 
-        product.append(desc or '')
-        product.append(node.css_first(PRICE).text())
+        # product.append(desc or '')
+        product['description'] = desc or ''
+        # product.append(node.css_first(PRICE).text())
+        product['price'] = node.css_first(PRICE).text()
         data.append(product)
 
     next_page = HTMLParser(html).css_first(NEXT_PAGE)
@@ -146,14 +157,16 @@ def processor(html):
     return data, urls
 
 
-async def saver(input: asyncio.Queue):
+async def saver(input: asyncio.Queue, idx_c: Counter):
     while True:
         data = await input.get()
         with open(SAVE_FILE, 'a') as file:
             for product in data:
-                for line in product:
-                    file.write(line + '\n')
+                for key, line in product.items():
+                    file.write(f'{key}: {line}\n')
                 file.write('\n')
+                idx_c.inc()
+                await client.index(index='ikea', doc_type='product', id=idx_c.count(), body=product)
 
 
 async def main():
@@ -163,7 +176,9 @@ async def main():
     to_middleware = asyncio.Queue()
     to_fetchers = asyncio.Queue()
     to_saver = asyncio.Queue()
+
     counter = Counter()
+    idx_counter = Counter()
     idle_counter = IdleCounter()
 
     await to_middleware.put(ROOT)
@@ -194,9 +209,9 @@ async def main():
         fetcher(to_fetchers, to_middleware, to_saver),
         fetcher(to_fetchers, to_middleware, to_saver),
 
-        saver(to_saver),
-        saver(to_saver),
-        saver(to_saver),
+        saver(to_saver, idx_counter),
+        saver(to_saver, idx_counter),
+        saver(to_saver, idx_counter),
     ]
 
     await asyncio.gather(*coros)
