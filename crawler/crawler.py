@@ -15,6 +15,7 @@ DESC = 'span.product-compact__description'
 PRICE = 'span.product-compact__price__value'
 NEXT_PAGE = 'a.pagination__right'
 
+SAVE_FILE = 'db.txt'
 
 class Counter:
     def __init__(self):
@@ -85,21 +86,21 @@ async def fetcher(input: asyncio.Queue, output: asyncio.Queue, save: asyncio.Que
     while True:
         url = await input.get()
 
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as html:
-                    body = await html.read()
+        # try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as html:
+                body = await html.read()
 
-                    data, urls = processor(body)
+                data, urls = processor(body)
 
-                    if data:
-                        await save.put(data)
+                if data:
+                    await save.put(data)
 
-                    for url in urls:
-                        await output.put(url)
+                for url in urls:
+                    await output.put(url)
 
-        except BaseException:
-            print(f'Exception while fetching {url}', file=sys.stderr)
+        # except BaseException:
+        #     print(f'Exception while fetching {url}', file=sys.stderr)
 
 def processor(html):
     data = []
@@ -108,29 +109,43 @@ def processor(html):
     category_list = False
     for node in HTMLParser(html).css(CATEGORY_SELECTOR):
         urls.append(node.attributes['href'])
+        print(f'Adding {node.text()}', file=sys.stderr)
         category_list = True
 
     if category_list:
         return None, urls
 
     for node in HTMLParser(html).css(PRODUCT_SELECTOR):
-        print('[processor] PRODUCT REF:')
-        print(node.css_first(REF).attributes['href'])
-        print('[processor] PRODUCT NAME:')
-        print(node.css_first(NAME).text())
-        print('[processor] PRODUCT TYPE:')
-        print(node.css_first(TYPE).text())
-        print('[processor] PRODUCT DESC:')
+        product = list()
+        # print('[processor] PRODUCT REF:')
+        # print(node.css_first(REF).attributes['href'])
+        product.append(node.css_first(REF).attributes['href'])
+        # print('[processor] PRODUCT NAME:')
+        # print(node.css_first(NAME).text())
+        product.append(node.css_first(NAME).text())
+        # print('[processor] PRODUCT TYPE:')
+        # print(node.css_first(TYPE).text())
+        product.append(node.css_first(TYPE).text())
+        # print('[processor] PRODUCT DESC:')
         desc = node.css_first(DESC)
         if desc:
-            print(desc.text())
-        print('[processor] PRODUCT PRICE:')
-        print(node.css_first(PRICE).text())
-        print()
+            # print(desc.text)
+            desc = desc.text()
+            desc = desc.split('\n')
+            desc = [el.strip() for el in desc if el.strip() is not '']
+            desc = ' '.join(desc)
+
+        product.append(desc or '')
+        # print('[processor] PRODUCT PRICE:')
+        # print(node.css_first(PRICE).text())
+        product.append(node.css_first(PRICE).text())
+        # print()
+        data.append(product)
 
     next_page = HTMLParser(html).css_first(NEXT_PAGE)
     if next_page:
         urls.append(next_page.attributes['href'])
+        print('NEXT PAGE FOUND', file=sys.stderr)
 
     return data, urls
 
@@ -138,11 +153,17 @@ def processor(html):
 async def saver(input: asyncio.Queue):
     while True:
         data = await input.get()
-        with open('data.txt', 'a') as file:
-            file.writelines(data)
+        with open(SAVE_FILE, 'a') as file:
+            for product in data:
+                for line in product:
+                    file.write(line + '\n')
+                file.write('\n')
 
 
 async def main():
+    with open(SAVE_FILE, 'w'):
+        pass
+
     to_middleware = asyncio.Queue()
     to_fetchers = asyncio.Queue()
     to_saver = asyncio.Queue()
@@ -185,6 +206,6 @@ async def main():
     await asyncio.gather(*coros)
 
 if __name__ == '__main__':
-    FETCHES_PER_SECOND = 100
+    FETCHES_PER_SECOND = 10
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
