@@ -1,223 +1,124 @@
 import asyncio
 import aiohttp
-import sys
-from selectolax.parser import HTMLParser
-from elasticsearch_async import AsyncElasticsearch
+import os
 
-ROOT = 'https://m2.ikea.com/ru/ru/cat/tovary-functional/'
-FETCHES_PER_SECOND = None
-
-CATEGORY_SELECTOR = 'a.range-catalog-list__link'
-PRODUCT_SELECTOR = 'div.product-compact__spacer'
-REF = 'a'
-IMG = 'img'
-NAME = 'span.product-compact__name'
-TYPE = 'span.product-compact__type'
-DESC = 'span.product-compact__description'
-PRICE = 'span.product-compact__price__value'
-NEXT_PAGE = 'a.pagination__right'
-
-SAVE_FILE = 'db.txt'
-
-DEBUG = False
-
-HOST = '10.5.0.2'  # TODO: move HOST to environment var
-
-client = AsyncElasticsearch(hosts=[HOST])
+from utils import Counter, IdleCounter
+from workers import *
+from parser import Parser, parser_factory
+from db import DB, db_factory
 
 
-class Counter:
-    def __init__(self):
-        self.val = 0
+class Crawler:
+    def __init__(self, name: str, root: str, parser: Parser, fps: int,
+                 db: DB, db_host: str, debug: bool, filename: str = 'db.txt'):
+        self._name = name
+        self._root = root
+        self._parser = parser
+        self._fps = fps
+        self._db = db
+        self._db_host = db_host
+        self._debug = debug
+        self._file = filename
+        self._net_sess = None
 
-    def inc(self):
-        self.val += 1
+    def _init_conns(self):
+        self._net_sess = aiohttp.ClientSession()
+        self._db.connect(self._db_host)
 
-    def reset(self):
-        self.val = 0
+    async def _reset_db(self):
+        await self._db.drop(self._name)
 
-    def count(self):
-        return self.val
+    def _reset_file(self):
+        with open(self._file, 'w'):
+            pass
 
+    async def run(self):
+        self._init_conns()
 
-class IdleCounter(Counter):
-    def __init__(self):
-        self.is_idle = False
-        Counter.__init__(self)
+        if self._debug:
+            self._reset_file()
 
-    def inc(self):
-        if self.is_idle:
-            super(IdleCounter, self).inc()
+        to_middleware = asyncio.Queue()
+        to_fetchers = asyncio.Queue()
+        to_saver = asyncio.Queue()
 
-    def set_idle(self):
-        self.is_idle = True
+        counter = Counter()
+        idx_counter = Counter()
+        idle_counter = IdleCounter()
 
-    def unset_idle(self):
-        self.is_idle = False
-        self.reset()
+        await to_middleware.put(self._root)
+        await self._reset_db()
 
-    def idle(self):
-        return self.is_idle
+        coros = [
+            middleware(to_middleware, to_fetchers, self._fps, counter, idle_counter),
+            reseter(counter),
+            idler(idle_counter),
 
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
 
-async def idler(idle_c: IdleCounter):
-    while True:
-        await asyncio.sleep(0.1)
+            saver(self._db, 'ikea', to_saver, idx_counter, True),
+            saver(self._db, 'ikea', to_saver, idx_counter, True),
+            saver(self._db, 'ikea', to_saver, idx_counter, True),
+        ]
 
-        idle_c.inc()
-
-        if idle_c.count() and (idle_c.count() % 10 == 0):
-            print(f'Is idle for {idle_c.count() // 10} secs now!', file=sys.stderr)
-
-
-async def reseter(c: Counter):
-    time = 0
-    while True:
-        await asyncio.sleep(1)
-        c.reset()
-
-        time += 1
-        if time and (time % 10 == 0):
-            print(f'Working for {time} secs now!', file=sys.stderr)
-
-
-async def middleware(input: asyncio.Queue, output: asyncio.Queue, c: Counter, idle_c: IdleCounter):
-    while True:
-        while c.val < FETCHES_PER_SECOND:
-            idle_c.set_idle()
-            url = await input.get()
-            idle_c.unset_idle()
-
-            await output.put(url)
-
-            c.inc()
-
-        # Waiting for a fetches_per_second lock to be reseted
-        await asyncio.sleep(0.1)    # TODO(AntonyMoes): reimplement later
-
-
-async def fetcher(input: asyncio.Queue, output: asyncio.Queue, save: asyncio.Queue):
-    while True:
-        url = await input.get()
-
-        # try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as html:
-                body = await html.read()
-
-                data, urls = processor(body)
-
-                if data:
-                    await save.put(data)
-
-                for url in urls:
-                    await output.put(url)
-
-        # except BaseException:
-        #     print(f'Exception while fetching {url}', file=sys.stderr)
+        await asyncio.gather(*coros)
 
 
-def processor(html):
-    data = []
-    urls = []
+def main():
+    name = 'ikea'
+    root = 'https://m2.ikea.com/ru/ru/cat/tovary-functional/'
+    parser = parser_factory('IKEA')
+    db = db_factory('Elasticsearch')
 
-    category_list = False
-    for node in HTMLParser(html).css(CATEGORY_SELECTOR):
-        urls.append(node.attributes['href'])
-        category_list = True
-
-    if category_list:
-        return None, urls
-
-    for node in HTMLParser(html).css(PRODUCT_SELECTOR):
-        product = dict()
-        product['reference'] = node.css_first(REF).attributes['href']
-        product['image'] = node.css_first(IMG).attributes['src']
-        product['name'] = node.css_first(NAME).text()
-        tp = node.css_first(TYPE).text()
-        tp = tp.split('\n')
-        tp = [el.strip() for el in tp if el.strip() is not '']
-        tp = ' '.join(tp)
-        product['type'] = tp
-
-        desc = node.css_first(DESC)
-        if desc:
-            desc = desc.text()
-
-        product['description'] = desc or ''
-        product['price'] = node.css_first(PRICE).text()
-        data.append(product)
-
-    next_page = HTMLParser(html).css_first(NEXT_PAGE)
-    if next_page:
-        urls.append(next_page.attributes['href'])
-
-    return data, urls
-
-
-async def saver(input: asyncio.Queue, idx_c: Counter):
-    while True:
-        data = await input.get()
-        with open(SAVE_FILE, 'a') as file:
-            for product in data:
-                if DEBUG:
-                    for key, line in product.items():
-                        file.write(f'{key}: {line}\n')
-                    file.write('\n')
-
-                idx_c.inc()
-                await client.index(index='ikea', doc_type='product', id=idx_c.count(), body=product)
-
-
-async def main():
-    with open(SAVE_FILE, 'w'):
+    db_host = 'localhost'
+    try:
+        db_host = os.environ['DBHOST']
+    except KeyError:
         pass
 
-    to_middleware = asyncio.Queue()
-    to_fetchers = asyncio.Queue()
-    to_saver = asyncio.Queue()
+    fps = 10
+    try:
+        fps = os.environ['FPS']
+    except KeyError:
+        pass
 
-    counter = Counter()
-    idx_counter = Counter()
-    idle_counter = IdleCounter()
+    debug = True
+    try:
+        debug = bool(os.environ['DEBUG'])
+    except KeyError:
+        pass
 
-    await to_middleware.put(ROOT)
+    filename = 'db.txt'
+    try:
+        filename = bool(os.environ['DFILE'])
+    except KeyError:
+        pass
 
-    coros = [
-        middleware(to_middleware, to_fetchers, counter, idle_counter),
-        reseter(counter),
-        idler(idle_counter),
+    crawler = Crawler(name=name, root=root, parser=parser, fps=fps,
+                      db=db, db_host=db_host, debug=debug, filename=filename)
 
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
-        fetcher(to_fetchers, to_middleware, to_saver),
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(crawler.run())
 
-        saver(to_saver, idx_counter),
-        saver(to_saver, idx_counter),
-        saver(to_saver, idx_counter),
-    ]
-
-    await asyncio.gather(*coros)
 
 if __name__ == '__main__':
-    FETCHES_PER_SECOND = 10
-    DEBUG = True
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    main()
