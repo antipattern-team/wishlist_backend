@@ -14,7 +14,7 @@ async def idler(idle_c: IdleCounter) -> None:
         idle_c.inc()
 
         if idle_c.count() and (idle_c.count() % 10 == 0):
-            print(f'Is idle for {idle_c.count() // 10} secs now!', file=sys.stderr)
+            print(f'Is idle for {idle_c.count() // 10} secs now!')
 
 
 async def reseter(c: Counter) -> None:
@@ -25,7 +25,7 @@ async def reseter(c: Counter) -> None:
 
         time += 1
         if time and (time % 10 == 0):
-            print(f'Working for {time} secs now!', file=sys.stderr)
+            print(f'Working for {time} secs now!')
 
 
 async def middleware(input: asyncio.Queue, output: asyncio.Queue, fps: int, c: Counter, idle_c: IdleCounter) -> None:

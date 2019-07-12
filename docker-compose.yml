@@ -1,49 +1,19 @@
-version: '2'
+version: '3'
 
 services:
   elastic:
-    build:
-      context: './elastic'
-      dockerfile: './Dockerfile'
-    networks:
-      base:
-        ipv4_address: 172.16.238.2
-#    ports:
-#      - "10200:9200"
-#      - "10300:9300"
-#    networks:
-#      base:
-#        ipv4_address: 10.5.0.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.2.0
+    environment:
+      - discovery.type=single-node
+      - network.host=0
+    ports:
+      - 10200:9200
 
   crawler:
     environment:
-      - DBHOST=172.16.238.2
+      - DBHOST=elastic
     build:
       context: './crawler'
       dockerfile: './Dockerfile'
     depends_on:
       - elastic
-    networks:
-      base:
-        ipv4_address: 172.16.238.3
-
-#    networks:
-#      base:
-#        ipv4_address: 10.5.0.3
-
-#networks:
-#  base:
-#    driver: bridge
-#    ipam:
-#      config:
-#        - subnet: 10.5.0.0/16
-#          gateway: 10.5.0.1
-
-networks:
-    base:
-        driver: bridge
-        ipam:
-            driver: default
-            config:
-                - subnet: 172.16.238.0/24
-                  gateway: 172.16.238.1

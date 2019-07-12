@@ -7,3 +7,5 @@ __pycache__
 
 #Convinient stuff
 test.py
+test/
+db.txt

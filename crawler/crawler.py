@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 import os
+import time
 
 from utils import Counter, IdleCounter
 from workers import *
@@ -97,7 +98,7 @@ def main():
 
     fps = 10
     try:
-        fps = os.environ['FPS']
+        fps = int(os.environ['FPS'])
     except KeyError:
         pass
 
@@ -121,4 +122,15 @@ def main():
 
 
 if __name__ == '__main__':
+
+    sleep = False
+    try:
+        sleep = os.environ['SLEEP']
+    except KeyError:
+        pass
+
+    if sleep:
+        time.sleep(10)
+        print('Slept')
+
     main()
