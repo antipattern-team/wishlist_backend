@@ -1,5 +1,4 @@
 import asyncio
-import sys
 import aiohttp
 
 from utils import Counter, IdleCounter
