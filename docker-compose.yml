@@ -2,6 +2,7 @@ version: '3'
 
 services:
   elastic:
+    restart: always
     image: docker.elastic.co/elasticsearch/elasticsearch:7.2.0
     environment:
       - discovery.type=single-node
@@ -17,3 +18,13 @@ services:
       dockerfile: './Dockerfile'
     depends_on:
       - elastic
+
+  postgres:
+    restart: always
+    image: postgres:latest
+    environment:
+#     Provide this variable with the .env file
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASE: 'wishlist'
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
