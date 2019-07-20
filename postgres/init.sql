@@ -2,34 +2,29 @@ create table if not exists users (
     uid serial not null
         constraint users_pkey
         primary key,
-    vkid text not null unique
+    vkid text not null unique,
+    wishes boolean not null default false
 );
 
 create table if not exists wants (
     uid integer not null,
     pid integer not null,
-    unique (uid, pid)
+    gid integer default null,
+    unique (uid, pid),
+    unique (uid, pid, gid)
 );
 
-create table if not exists gifts (
-    uid integer not null,
-    gid integer unique not null,
-    unique (uid, gid)
+create table if not exists friends (
+    uid integer not null references users,
+    fid integer not null references users,
+    unique (uid, fid)
 );
-
--- create unique index if not exists users_vkid_idx
---     on users (vkid);
--- this index is auto-created
 
 create index if not exists wants_uid_idx
     on wants (uid);
 
-create index if not exists gifts_uid_idx
-    on gifts (uid);
-
--- create unique index if not exists gifts_gid_idx
---     on gifts (gid);
--- this index is auto-created
+create index if not exists wants_gid_idx
+    on wants (gid);
 
 create table if not exists popular (
     pid integer not null
