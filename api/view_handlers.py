@@ -1,4 +1,5 @@
 from aiohttp import web
+from middleware import auth_mw
 
 
 async def get_products_popular(request):
@@ -22,6 +23,7 @@ async def get_products_popular(request):
     return web.json_response(resp)
 
 
+@auth_mw
 async def get_friends(request):
     resp = list()
     uid = request.cookies.get('id')
@@ -40,6 +42,7 @@ async def get_friends(request):
     return web.json_response(resp)
 
 
+@auth_mw
 async def get_friends_search(request):
     resp = list()
     uid = request.cookies.get('id')
@@ -61,6 +64,7 @@ async def get_friends_search(request):
     return web.json_response(resp)
 
 
+@auth_mw
 async def get_gifts(request):
     resp = list()
     gid = request.cookies.get('id')
@@ -84,6 +88,7 @@ async def get_gifts(request):
     return web.json_response(resp)
 
 
+@auth_mw
 async def get_wishlist(request):
     resp = list()
     uid = request.cookies.get('id')
@@ -107,6 +112,7 @@ async def get_wishlist(request):
     return web.json_response(resp)
 
 
+@auth_mw
 async def post_wishlist(request):
     uid = request.cookies['id']
     pid = request.query.get('query')
@@ -119,6 +125,7 @@ async def post_wishlist(request):
     return web.json_response(resp)
 
 
+@auth_mw
 async def delete_wishlist(request):
     uid = request.cookies['id']
     pid = request.query.get('query')
@@ -131,6 +138,7 @@ async def delete_wishlist(request):
     return web.json_response(resp)
 
 
+@auth_mw
 async def get_user(request):
     resp = list()
     uid = request.query.get('query')
@@ -153,6 +161,7 @@ async def get_user(request):
     return web.json_response(resp)
 
 
+@auth_mw
 async def post_user(request):
     uid = request.query.get('query')
     # data = await ORM.add_gift(uid, pid)
@@ -164,6 +173,7 @@ async def post_user(request):
     return web.json_response(resp)
 
 
+@auth_mw
 async def delete_user(request):
     uid = request.query.get('query')
     # data = await ORM.delete_gift(uid, pid)

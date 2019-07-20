@@ -1,9 +1,8 @@
 from aiohttp import web
 from routes import routes
-from auth import authorize_from_vk
 
 if __name__ == '__main__':
-    app = web.Application(middlewares=[authorize_from_vk])
+    app = web.Application()
     # route part
     for method, route, handler, name in routes:
         app.router.add_route(method, route, handler, name=name)
