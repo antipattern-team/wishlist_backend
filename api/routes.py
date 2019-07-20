@@ -1,13 +1,15 @@
-from view_handlers import Gifts, Products, Friends, Wishlist, User
+from view_handlers import *
 
 
 routes = [
-    ('GET', '/products',         Products, 'products'),
-    ('GET', '/products/popular', Products, 'popular'),
-    ('GET', '/products/search',  Products, 'products.search'),
-    ('GET', '/friends',          Friends,  'friends'),
-    ('GET', '/friends/search',   Friends,  'friends.search'),
-    ('GET', '/gifts/{name}',     Gifts,    'gifts'),
-    ('*',   '/wishlist',         Wishlist, 'wishlist'),
-    ('*',   '/id/{name}',        User,     'id'),
+    ('GET',    '/products/popular', get_products_popular, 'popular'),
+    ('GET',    '/friends/list',     get_friends,          'friends'),
+    ('GET',    '/friends/search',   get_friends_search,   'friends.search'),
+    ('GET',    '/gifts',            get_gifts,            'gifts'),
+    ('GET',    '/wishlist',         get_wishlist,         'wishlist_get'),
+    ('POST',   '/wishlist',         post_wishlist,        'wishlist_post'),
+    ('DELETE', '/wishlist',         delete_wishlist,      'wishlist_delete'),
+    ('GET',    '/wishlist/{uid}',   get_user,             'user_get'),
+    ('POST',   '/wishlist/{uid}',   get_user,             'user_get'),
+    ('DELETE', '/wishlist/{uid}',   get_user,             'user_get'),
 ]
