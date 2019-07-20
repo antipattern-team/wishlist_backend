@@ -1,25 +1,10 @@
 from aiohttp import web
 
 
-def redirect(request, router_name):
-    url = request.app.router[router_name].url_for()
-    raise web.HTTPFound(url)
-
-
-class Redirect(web.View):
-    async def get(self):
-        redirect(self.request, 'home')
-
-
-class Home(web.View):
-    async def get(self):
-        return web.Response(text="HELLO")
-
-
 class Products(web.View):
-    # 1) Популярные товары '/products/popular'
-    # 2) Товары все '/products/'
-    # 2.1) Товары по поисковому запросу '/products/search'
+    # 1) '/products/popular'
+    # 2) '/products/'
+    # 2.1) '/products/search'
     async def get(self):
         data = {
             'products': {
@@ -35,14 +20,14 @@ class Products(web.View):
 
 
 class Friends(web.View):
-    # 3) Список друзей (у которых есть вишлист) '/friends'
-    # 4) Друзья по поисковому запросу '/friends/search'
+    # 3) '/friends'
+    # 4) '/friends/search'
     async def get(self):
         return web.Response(text="list_friends\r\n")
 
 
 class Gifts(web.View):
-    # 5) Что я забронировал для дарения '/gifts'
+    # 5) '/gifts' what I reserved for giving
     async def get(self):
         return web.Response(
             text="Hello {}!\r\n".format(self.request.match_info['name'])
@@ -50,32 +35,30 @@ class Gifts(web.View):
 
 
 class Wishlist(web.View):
-    # 6) Что я хочу (и что забронировали у меня) '/wishlist'(?hui=zabronirovali)
+    # 6) '/wishlist'
     async def get(self):
         return web.Response(text="list_reserved\r\n")
 
-    # 1) Добавить в вишлист '/wishlist'
+    # 1) '/wishlist' add to
     async def post(self):
         return web.Response(text="post\r\n")
 
-    # 2) Удалить из вишлиста '/wishlist'
+    # 2) '/wishlist' remove from
     async def delete(self):
         return web.Response(text="delete\r\n")
 
 
 class User(web.View):
-    # 7) Что хочет определенный человек (его профиль) (и что забронировали)
-    # '/id/{name}' (?hui=zabronirovali)
+    # 7) '/id/{name}' someone's wishlist
     async def get(self):
         return web.Response(text="Hello {}\r\n".format(
             self.request.app.router['id'].url_for(name='guest'))
         )
 
-    # 3) Забронировать '/id/{name}'
+    # 3) '/id/{name}' reserve gift
     async def post(self):
         return web.Response(text="post\r\n")
 
-    # 4) Разбронировать '/id/{name}'
+    # 4) '/id/{name}' remove gift
     async def delete(self):
         return web.Response(text="delete\r\n")
-
