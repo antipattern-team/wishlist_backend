@@ -28,3 +28,16 @@ services:
       POSTGRES_DATABASE: 'wishlist'
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  api:
+    environment:
+      - ELHOST=elastic
+      - DBHOST=postgres
+    build:
+      context: './api'
+      dockerfile: './Dockerfile'
+    depends_on:
+      - elastic
+      - postgres
+    ports:
+      - 8080:8080
