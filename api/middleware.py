@@ -8,10 +8,10 @@ def auth_mw(handler):
         if 'uid' not in request.cookies.keys():
             uid = 1  # RMQ.request()
             response.set_cookie(name='uid', value=uid, max_age=60)
-            # print('cookie-set')
+            print('cookie-set')
             return response
         else:
-            # print('cookie-get')
+            print('cookie-get')
             # ORM.validation()
             return response
 

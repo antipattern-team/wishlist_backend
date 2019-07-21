@@ -113,7 +113,7 @@ async def get_wishlist(request):
 
 
 @auth_mw
-async def post_wishlist(request):
+async def add_to_wishlist(request):
     uid = request.cookies['id']
     pid = request.query.get('query')
     # data = await ORM.add_product(uid, pid)
@@ -126,7 +126,7 @@ async def post_wishlist(request):
 
 
 @auth_mw
-async def delete_wishlist(request):
+async def delete_from_wishlist(request):
     uid = request.cookies['id']
     pid = request.query.get('query')
     # data = await ORM.delete_product(uid, pid)
@@ -139,7 +139,7 @@ async def delete_wishlist(request):
 
 
 @auth_mw
-async def get_user(request):
+async def get_user_wishlist(request):
     resp = list()
     uid = request.query.get('query')
     # try:
@@ -162,7 +162,7 @@ async def get_user(request):
 
 
 @auth_mw
-async def post_user(request):
+async def reserve_gift_for_user(request):
     uid = request.query.get('query')
     # data = await ORM.add_gift(uid, pid)
     # if data is None:
@@ -174,7 +174,7 @@ async def post_user(request):
 
 
 @auth_mw
-async def delete_user(request):
+async def cancel_gift_for_user(request):
     uid = request.query.get('query')
     # data = await ORM.delete_gift(uid, pid)
     # if data is None:
