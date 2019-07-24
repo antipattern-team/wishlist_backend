@@ -12,7 +12,7 @@ services:
 
   crawler:
     environment:
-      - DBHOST=elastic
+      DBHOST: 'elastic'
     build:
       context: './crawler'
       dockerfile: './Dockerfile'
@@ -31,8 +31,10 @@ services:
 
   api:
     environment:
-      - ELHOST=elastic
-      - DBHOST=postgres
+      ELHOST: 'elastic'
+      DBHOST: 'postgres'
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASE: 'wishlist'
     build:
       context: './api'
       dockerfile: './Dockerfile'

@@ -20,6 +20,9 @@ create table if not exists friends (
     unique (uid, fid)
 );
 
+create index if not exists friends_uid_idx
+    on friends (uid);
+
 create index if not exists wants_uid_idx
     on wants (uid);
 

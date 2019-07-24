@@ -9,6 +9,5 @@ __pycache__
 .env
 
 #Convinient stuff
-test.py
 test/
 db.txt
