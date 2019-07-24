@@ -1,4 +1,4 @@
-from view_handlers import *
+from handlers import *
 
 
 routes = [

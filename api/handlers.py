@@ -25,7 +25,7 @@ async def get_products_popular(request):
 
 
 @auth_mw
-async def get_friends(request):
+async def get_friends(request, context):
     resp = list()
     uid = request.cookies.get('id')
     # try:
@@ -44,7 +44,7 @@ async def get_friends(request):
 
 
 @auth_mw
-async def get_friends_search(request):
+async def get_friends_search(request, context):
     resp = list()
     uid = request.cookies.get('id')
     keyword = request.query.get('query')
@@ -66,7 +66,7 @@ async def get_friends_search(request):
 
 
 @auth_mw
-async def get_gifts(request):
+async def get_gifts(request, context):
     resp = list()
     gid = request.cookies.get('id')
     # try:
@@ -90,7 +90,7 @@ async def get_gifts(request):
 
 
 @auth_mw
-async def get_wishlist(request):
+async def get_wishlist(request, context):
     resp = list()
     uid = request.cookies.get('id')
     keyword = request.query.get('query')  # "reserved=-1", "unreserved=1", "all=0"
@@ -114,7 +114,7 @@ async def get_wishlist(request):
 
 
 @auth_mw
-async def add_to_wishlist(request):
+async def add_to_wishlist(request, context):
     uid = request.cookies['id']
     pid = request.query.get('query')
     # data = await ORM.add_product(uid, pid)
@@ -127,7 +127,7 @@ async def add_to_wishlist(request):
 
 
 @auth_mw
-async def delete_from_wishlist(request):
+async def delete_from_wishlist(request, context):
     uid = request.cookies['id']
     pid = request.query.get('query')
     # data = await ORM.delete_product(uid, pid)
@@ -140,7 +140,7 @@ async def delete_from_wishlist(request):
 
 
 @auth_mw
-async def get_user_wishlist(request):
+async def get_user_wishlist(request, context):
     resp = list()
     uid = request.query.get('query')
     # try:
@@ -163,7 +163,7 @@ async def get_user_wishlist(request):
 
 
 @auth_mw
-async def reserve_gift_for_user(request):
+async def reserve_gift_for_user(request, context):
     uid = request.query.get('query')
     # data = await ORM.add_gift(uid, pid)
     # if data is None:
@@ -175,7 +175,7 @@ async def reserve_gift_for_user(request):
 
 
 @auth_mw
-async def cancel_gift_for_user(request):
+async def cancel_gift_for_user(request, context):
     uid = request.query.get('query')
     # data = await ORM.delete_gift(uid, pid)
     # if data is None:
