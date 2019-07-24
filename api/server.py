@@ -1,5 +1,5 @@
 from aiohttp import web
-from routes import routes
+from api.routes import routes
 
 if __name__ == '__main__':
     app = web.Application()

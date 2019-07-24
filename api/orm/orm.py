@@ -407,7 +407,7 @@ class Model(metaclass=ModelMeta):
 
 
 
-async def main():
+async def orm_temp_test():
     await Manage.init_conn(user='postgres', password='', database='test', host='localhost')
 
     class User(Model):
@@ -514,4 +514,4 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.run(orm_temp_test())
