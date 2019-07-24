@@ -1,4 +1,4 @@
-from api.view_handlers import *
+from view_handlers import *
 
 
 routes = [

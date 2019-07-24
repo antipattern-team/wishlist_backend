@@ -1,4 +1,4 @@
-from api.orm.orm import *
+from orm.orm import *
 
 
 class User(Model):

@@ -1,6 +1,6 @@
 from aiohttp import web
-from api.middleware import auth_mw
-from api.models import *
+from middleware import auth_mw
+from models import *
 
 
 async def get_products_popular(request):

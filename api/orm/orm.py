@@ -406,8 +406,7 @@ class Model(metaclass=ModelMeta):
         self._invalidate()
 
 
-
-async def orm_temp_test():
+async def _orm_test():
     await Manage.init_conn(user='postgres', password='', database='test', host='localhost')
 
     class User(Model):
@@ -514,4 +513,4 @@ async def orm_temp_test():
 
 
 if __name__ == '__main__':
-    asyncio.run(orm_temp_test())
+    asyncio.run(_orm_test())
