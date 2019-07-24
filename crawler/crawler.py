@@ -130,7 +130,9 @@ if __name__ == '__main__':
         pass
 
     if sleep:
-        time.sleep(15)
+        secs = 60
+        print(f'Sleeping for {secs} secs')
+        time.sleep(secs)
         print('Slept')
 
     main()
