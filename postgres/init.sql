@@ -7,6 +7,9 @@ create table if not exists users (
 );
 
 create table if not exists wants (
+    id serial not null
+        constraint wants_pkey
+        primary key,
     uid integer not null,
     pid integer not null,
     gid integer default null,
@@ -15,6 +18,9 @@ create table if not exists wants (
 );
 
 create table if not exists friends (
+    id serial not null
+        constraint friends_pkey
+        primary key,
     uid integer not null references users,
     fid integer not null references users,
     unique (uid, fid)
