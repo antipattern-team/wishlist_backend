@@ -13,12 +13,17 @@ services:
 
   crawler:
     environment:
-      DBHOST: 'elastic'
+      ESHOST: 'elastic'
+      PGHOST: 'postgres'
+#     Provide this variable with the .env file
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASE: 'wishlist'
     build:
       context: './crawler'
       dockerfile: './Dockerfile'
     depends_on:
       - elastic
+      - postgres
 
   postgres:
     restart: always
@@ -32,8 +37,9 @@ services:
 
   api:
     environment:
-      ELHOST: 'elastic'
-      DBHOST: 'postgres'
+      ESHOST: 'elastic'
+      PGHOST: 'postgres'
+#     Provide this variable with the .env file
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DATABASE: 'wishlist'
     build:

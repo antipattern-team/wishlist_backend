@@ -11,30 +11,40 @@ from db import DB, db_factory
 
 class Crawler:
     def __init__(self, name: str, root: str, parser: Parser, fps: int,
-                 db: DB, db_host: str, debug: bool, filename: str = 'db.txt'):
-        self._name = name
-        self._root = root
-        self._parser = parser
-        self._fps = fps
-        self._db = db
-        self._db_host = db_host
-        self._debug = debug
-        self._file = filename
-        self._net_sess = None
+                 pg_db: DB, es_db: DB, pg_host: str, es_host: str, pg_db_name, pg_db_pass,
+                 debug: bool, filename: str = 'db.txt'):
+        self._name: str = name
+        self._root: str = root
+        self._parser: Parser = parser
+        self._fps: int = fps
+        self._pg_db: DB = pg_db
+        self._es_db: DB = es_db
+        self._pg_host: str = pg_host
+        self._es_host: str = es_host
+        self._pg_db_name: str = pg_db_name
+        self._pg_db_pass: str = pg_db_pass
+        self._debug: bool = debug
+        self._file: str = filename
+        self._net_sess: aiohttp.ClientSession = None
 
-    def _init_conns(self):
+    async def _init_conns(self):
         self._net_sess = aiohttp.ClientSession()
-        self._db.connect(self._db_host)
+        if not await self._es_db.connect(self._es_host):
+            raise ConnectionError('Couldn\'t connect to es')
+        if not await self._pg_db.connect(host=self._es_host, user='postgres',
+                                  password=self._pg_db_pass, database=self._pg_db_name):
+            raise ConnectionError('Couldn\'t connect to pg')
 
     async def _reset_db(self):
-        await self._db.drop(self._name)
+        await self._es_db.drop(self._name)
+        await self._pg_db.drop(self._name)
 
     def _reset_file(self):
         with open(self._file, 'w'):
             pass
 
     async def run(self):
-        self._init_conns()
+        await self._init_conns()
 
         if self._debug:
             self._reset_file()
@@ -76,46 +86,53 @@ class Crawler:
             fetcher(to_fetchers, to_middleware, to_saver, self._parser),
             fetcher(to_fetchers, to_middleware, to_saver, self._parser),
 
-            saver(self._db, 'ikea', to_saver, idx_counter, True),
-            saver(self._db, 'ikea', to_saver, idx_counter, True),
-            saver(self._db, 'ikea', to_saver, idx_counter, True),
+            saver([self._es_db, self._pg_db], self._name, to_saver, idx_counter, True),
+            # saver([self._es_db, self._pg_db], self._name, to_saver, idx_counter, True),
+            # saver([self._es_db, self._pg_db], self._name, to_saver, idx_counter, True),
         ]
 
         await asyncio.gather(*coros)
 
 
 def main():
-    name = 'ikea'
+    name = 'products'
     root = 'https://m2.ikea.com/ru/ru/cat/tovary-functional/'
     parser = parser_factory('IKEA')
-    db = db_factory('Elasticsearch')
+    es = db_factory('Elasticsearch')
+    pg = db_factory('Postgres')
 
-    db_host = 'localhost'
-    try:
-        db_host = os.environ['DBHOST']
-    except KeyError:
-        pass
+    es_host = 'localhost'
+    if 'ESHOST' in os.environ:
+        es_host = os.environ['ESHOST']
+
+    pg_host = 'localhost'
+    if 'PGHOST' in os.environ:
+        pg_host = os.environ['PGHOST']
+
+    pg_database = 'wishlist'
+    if 'POSTGRES_DATABASE' in os.environ:
+        pg_database = os.environ['POSTGRES_DATABASE']
+
+    pg_password = ''
+    if 'POSTGRES_PASSWORD' in os.environ:
+        pg_password = os.environ['POSTGRES_PASSWORD']
 
     fps = 10
-    try:
+    if 'FPS' in os.environ:
         fps = int(os.environ['FPS'])
-    except KeyError:
-        pass
 
     debug = True
-    try:
+    if 'DEBUG' in os.environ:
         debug = bool(os.environ['DEBUG'])
-    except KeyError:
-        pass
 
     filename = 'db.txt'
-    try:
+    if 'DFILE' in os.environ:
         filename = bool(os.environ['DFILE'])
-    except KeyError:
-        pass
 
     crawler = Crawler(name=name, root=root, parser=parser, fps=fps,
-                      db=db, db_host=db_host, debug=debug, filename=filename)
+                      es_db=es, pg_db=pg, es_host=es_host, pg_host=pg_host,
+                      pg_db_name=pg_database, pg_db_pass=pg_password,
+                      debug=debug, filename=filename)
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(crawler.run())

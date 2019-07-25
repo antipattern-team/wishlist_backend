@@ -132,6 +132,7 @@ class QuerySet:
 
             for k, v in self._filter.items():
                 if not isinstance(v, int):
+                    v = v.replace('\'', '\"')
                     query += f' {k} = \'{v}\' and'
                 else:
                     query += f' {k} = {v} and'
@@ -201,6 +202,7 @@ class QuerySet:
             v = self._model._fields[k].validate(v)
 
             if not isinstance(v, int):
+                v = v.replace('\'', '\"')
                 query += f' {k} = \'{v}\','
             else:
                 query += f' {k} = {v},'
@@ -213,6 +215,7 @@ class QuerySet:
                 v = self._model._fields[k].validate(v)
 
                 if not isinstance(v, int):
+                    v = v.replace('\'', '\"')
                     query += f' {k} = \'{v}\' and'
                 else:
                     query += f' {k} = {v} and'
@@ -229,6 +232,7 @@ class QuerySet:
         query = f'DELETE FROM {self._model._table_name} WHERE    '
         for k, v in self._filter.items():
             if not isinstance(v, int):
+                v = v.replace('\'', '\"')
                 query += f' {k} = \'{v}\' and'
             else:
                 query += f' {k} = {v} and'
@@ -334,6 +338,7 @@ class Model(metaclass=ModelMeta):
                     continue
                 v = getattr(self, k)
                 if not isinstance(v, int):
+                    v = v.replace('\'', '\"')
                     query += f'\'{v}\','
                 else:
                     query += f'{v},'
@@ -349,6 +354,7 @@ class Model(metaclass=ModelMeta):
                     continue
 
                 if not isinstance(v, int):
+                    v = v.replace('\'', '\"')
                     query += f' {k} = \'{v}\','
                 else:
                     query += f' {k} = {v},'
@@ -377,6 +383,7 @@ class Model(metaclass=ModelMeta):
                     continue
                 v = getattr(self, k)
                 if not isinstance(v, int):
+                    v = v.replace('\'', '\"')
                     query += f'\'{v}\','
                 else:
                     query += f'{v},'

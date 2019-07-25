@@ -1,5 +1,7 @@
 import asyncio
 import aiohttp
+from typing import List
+import re
 
 from utils import Counter, IdleCounter
 from parser import Parser
@@ -30,7 +32,7 @@ async def reseter(c: Counter) -> None:
 async def middleware(input: asyncio.Queue, output: asyncio.Queue, fps: int, c: Counter, idle_c: IdleCounter) -> None:
     while True:
         while c.count() < fps:
-            """On counter reset get queue size in case of unhandled urls"""
+            '''On counter reset get queue size in case of unhandled urls'''
             if c.count() == 0:
                 c.set(output.qsize())
 
@@ -62,18 +64,23 @@ async def fetcher(input: asyncio.Queue, output: asyncio.Queue, save: asyncio.Que
                 for url in urls:
                     await output.put(url)
 
-async def saver(db: DB, coll: str, input: asyncio.Queue, idx_c: Counter,
+
+async def saver(dbs: List[DB], coll: str, input: asyncio.Queue, idx_c: Counter,
                 debug: bool = False, save_file: str = 'db.txt') -> None:
+    price_re = re.compile("[0-9]+")
+
     while True:
         data = await input.get()
         for product in data:
             idx_c.inc()
 
+            product['price'] = price_re.match(product['price']).group(0)
+
             if debug:
                 with open(save_file, 'a') as file:
-                    file.write(f"Entry {idx_c.count()}:\n")
+                    file.write(f'Entry {idx_c.count()}:\n')
                     for key, line in product.items():
                         file.write(f'{key}: {line}\n')
                     file.write('\n')
-
-            await db.save(product, coll, idx_c.count())
+            for db in dbs:
+                await db.save(product, coll, idx_c.count())
