@@ -4,10 +4,23 @@ from orm.orm import *
 class User(Model):
     uid = IntPrimaryField(required=False)
     vkid = StringField()
-    wishes = BoolField(required=False, default=False)
+    wishes = IntField(required=False, default=0)
 
     class Meta:
         table_name = 'users'
+
+
+class Product(Model):
+    pid = IntPrimaryField(required=False)
+    ref = StringField()
+    img = StringField()
+    name = StringField()
+    ptype = StringField(required=False)
+    descr = StringField(required=False)
+    price = IntField()
+
+    class Meta:
+        table_name = 'products'
 
 
 class Wants(Model):
