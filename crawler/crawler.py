@@ -32,7 +32,7 @@ class Crawler:
         if not await self._es_db.connect(self._es_host):
             raise ConnectionError('Couldn\'t connect to es')
         if not await self._pg_db.connect(host=self._es_host, user='postgres',
-                                  password=self._pg_db_pass, database=self._pg_db_name):
+                                         password=self._pg_db_pass, database=self._pg_db_name):
             raise ConnectionError('Couldn\'t connect to pg')
 
     async def _reset_db(self):
@@ -87,8 +87,9 @@ class Crawler:
             fetcher(to_fetchers, to_middleware, to_saver, self._parser),
 
             saver([self._es_db, self._pg_db], self._name, to_saver, idx_counter, True),
-            # saver([self._es_db, self._pg_db], self._name, to_saver, idx_counter, True),
-            # saver([self._es_db, self._pg_db], self._name, to_saver, idx_counter, True),
+            saver([self._es_db, self._pg_db], self._name, to_saver, idx_counter, True),
+            saver([self._es_db, self._pg_db], self._name, to_saver, idx_counter, True),
+            saver([self._es_db, self._pg_db], self._name, to_saver, idx_counter, True),
         ]
 
         await asyncio.gather(*coros)

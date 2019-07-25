@@ -10,11 +10,11 @@ create table if not exists products (
     pid serial not null
         constraint products_pkey
         primary key,
-    ref text not null,
-    img text not null,
+    reference text not null,
+    image text not null,
     name text not null,
     type text,
-    descr text,
+    description text,
     price integer not null
 );
 
@@ -23,7 +23,7 @@ create table if not exists wants (
         constraint wants_pkey
         primary key,
     uid integer not null references users,
-    pid integer not null references products,
+    pid integer not null references products on delete cascade,
     gid integer default null references users,
     unique (uid, pid),
     unique (uid, pid, gid)
@@ -50,7 +50,7 @@ create index if not exists wants_gid_idx
 create table if not exists popular (
     pid integer not null
         constraint popular_pkey
-        primary key references products,
+        primary key references products on delete cascade,
     rate integer not null default 0
 );
 

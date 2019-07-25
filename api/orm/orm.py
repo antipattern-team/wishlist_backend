@@ -6,6 +6,29 @@ import asyncpg
 # 2) ...
 
 
+class _QueryVariableGenerator:
+    def __init__(self):
+        self._counter = 1
+        self._variables = []
+
+    def get_variable(self, variable):
+        if isinstance(variable, int):
+            query = f'${self._counter}::integer'
+        elif isinstance(variable, bool):
+            query = f'${self._counter}::bool'
+        else:
+            query = f'${self._counter}'
+
+        self._counter += 1
+        self._variables.append(variable)
+
+        return query
+
+    @property
+    def variables(self):
+        return self._variables
+
+
 class Field:
     def __init__(self, f_type, required=True, default=None):
         self.f_type = f_type
@@ -101,7 +124,6 @@ class QuerySet:
         self._conn = _connection
 
         self._add_rules(**kwargs)
-        # print(self._filter)
 
     def _add_rules(self, **kwargs):
         # print('[_add_rules]', kwargs)
@@ -109,7 +131,6 @@ class QuerySet:
             if k not in self._model._fields:
                 raise ValueError(f'Unknown field {k}')
             self._filter[k] = self._model._fields[k].validate(v)
-
 
         # self._filter = {**self._filter, **kwargs}
 
@@ -127,15 +148,13 @@ class QuerySet:
     async def get(self):
         query = f'SELECT * FROM {self._model._table_name}'
 
+        gen = _QueryVariableGenerator()
+
         if len(self._filter):
             query = f'SELECT * FROM {self._model._table_name} WHERE    '
 
             for k, v in self._filter.items():
-                if not isinstance(v, int):
-                    v = v.replace('\'', '\"')
-                    query += f' {k} = \'{v}\' and'
-                else:
-                    query += f' {k} = {v} and'
+                query += f' {k} = {gen.get_variable(v)} and'
             query = query[:-4]
 
         if self._slices:
@@ -175,7 +194,7 @@ class QuerySet:
         # print(query)
 
         models = []
-        objects = await self._conn.fetch(query)
+        objects = await self._conn.fetch(query, *gen.variables)
         for obj in objects:
             fields = {}
             for field in self._model._fields:
@@ -195,61 +214,42 @@ class QuerySet:
     async def update(self, **kwargs):
         query = f'UPDATE {self._model._table_name} SET '
 
+        gen = _QueryVariableGenerator()
+
         for k, v in kwargs.items():
             if k not in self._model._fields:
                 raise ValueError(f'Unknown field {k}')
 
             v = self._model._fields[k].validate(v)
 
-            if not isinstance(v, int):
-                v = v.replace('\'', '\"')
-                query += f' {k} = \'{v}\','
-            else:
-                query += f' {k} = {v},'
+            query += f' {k} = {gen.get_variable(v)},'
+
         query = query[:-1]
 
         if len(self._filter) > 0:
             query += ' WHERE'
             for k, v in self._filter.items():
-
                 v = self._model._fields[k].validate(v)
 
-                if not isinstance(v, int):
-                    v = v.replace('\'', '\"')
-                    query += f' {k} = \'{v}\' and'
-                else:
-                    query += f' {k} = {v} and'
+                query += f' {k} = {gen.get_variable(v)} and'
             query = query[:-4]
 
         query += ';'
 
         # print(query)
-        await self._conn.execute(query)
-
-
+        await self._conn.execute(query, *gen.variables)
 
     async def delete(self):
         query = f'DELETE FROM {self._model._table_name} WHERE    '
+
+        gen = _QueryVariableGenerator()
+
         for k, v in self._filter.items():
-            if not isinstance(v, int):
-                v = v.replace('\'', '\"')
-                query += f' {k} = \'{v}\' and'
-            else:
-                query += f' {k} = {v} and'
+            query += f' {k} = {gen.get_variable(v)} and'
         query = query[:-4] + ';'
 
         # print(query)
-        await self._conn.execute(query)
-
-# todo: maybe implement them
-# class SelectQuerySet(QuerySet):
-#     pass
-#
-# class UpdateQuerySet(QuerySet):
-#     pass
-#
-# class DeleteQuerySet(QuerySet):
-#     pass
+        await self._conn.execute(query, *gen.variables)
 
 
 class Manage:
@@ -332,16 +332,14 @@ class Model(metaclass=ModelMeta):
                 query += f'{k},'
             query = query[:-1] + ') '
 
+            gen = _QueryVariableGenerator()
+
             query += 'VALUES('
             for k in self._fields:
                 if getattr(self, k) is None:
                     continue
                 v = getattr(self, k)
-                if not isinstance(v, int):
-                    v = v.replace('\'', '\"')
-                    query += f'\'{v}\','
-                else:
-                    query += f'{v},'
+                query += f'{gen.get_variable(v)},'
             query = query[:-1] + f')'
 
             query += f' ON CONFLICT({primary_field}) DO UPDATE SET'
@@ -353,11 +351,7 @@ class Model(metaclass=ModelMeta):
                 if v is None:
                     continue
 
-                if not isinstance(v, int):
-                    v = v.replace('\'', '\"')
-                    query += f' {k} = \'{v}\','
-                else:
-                    query += f' {k} = {v},'
+                query += f' {k} = {gen.get_variable(v)},'
             # query = query[:-1] + f' WHERE {primary_field} = {getattr(self, primary_field)}  '
             query = query[:-1]
 
@@ -370,6 +364,9 @@ class Model(metaclass=ModelMeta):
             query += ';'
         else:
             query = f'INSERT INTO {self._table_name}('
+
+            gen = _QueryVariableGenerator()
+
             for k in self._fields:
                 if k == primary_field or getattr(self, k) is None:
                     none_fields.append(k)
@@ -382,11 +379,7 @@ class Model(metaclass=ModelMeta):
                 if k == primary_field or getattr(self, k) is None:
                     continue
                 v = getattr(self, k)
-                if not isinstance(v, int):
-                    v = v.replace('\'', '\"')
-                    query += f'\'{v}\','
-                else:
-                    query += f'{v},'
+                query += f'{gen.get_variable(v)},'
             query = query[:-1] + ') RETURNING '
 
             for field in none_fields:
@@ -396,11 +389,11 @@ class Model(metaclass=ModelMeta):
         # print(query)
 
         if len(none_fields) > 0:
-            res = (await self.objects._conn.fetch(query))[0]
+            res = (await self.objects._conn.fetch(query, *gen.variables))[0]
             for field in none_fields:
                 setattr(self, field, res[field])
         else:
-            await self.objects._conn.execute(query)
+            await self.objects._conn.execute(query, *gen.variables)
 
     async def delete(self):
         primary_field = self._primary

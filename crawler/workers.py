@@ -73,14 +73,15 @@ async def saver(dbs: List[DB], coll: str, input: asyncio.Queue, idx_c: Counter,
         data = await input.get()
         for product in data:
             idx_c.inc()
+            count = idx_c.count()
 
-            product['price'] = price_re.match(product['price']).group(0)
+            product['price'] = int(price_re.match(product['price'].replace(" ", "")).group(0))
 
             if debug:
                 with open(save_file, 'a') as file:
-                    file.write(f'Entry {idx_c.count()}:\n')
+                    file.write(f'Entry {count}:\n')
                     for key, line in product.items():
                         file.write(f'{key}: {line}\n')
                     file.write('\n')
             for db in dbs:
-                await db.save(product, coll, idx_c.count())
+                await db.save(product, coll, count)
