@@ -55,10 +55,18 @@ services:
 #     Provide this variable with the .env file
 #      - ${PORT}:8080
 
+  swagger:
+    environment:
+      SWAGGER_JSON: '/swagger/config.json'
+    build: './swagger'
+    volumes:
+      - ./swagger:/swagger
+
   nginx:
     build: './nginx'
     ports:
-      - "8080:80"
-      - "44380:443"
+      - "80:80"
+      - "443:443"
     depends_on:
       - api
+      - swagger

@@ -1,0 +1,464 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "This is api-description of the most impressive and popular game website kpacubo.xyz",
+    "version": "1.0.0",
+    "title": "KPACUBOE API"
+  },
+  "host": "api.kpacubo.xyz",
+  "basePath": "/",
+  "tags": [
+    {
+      "name": "auth",
+      "description": "Authorization, registration, logout"
+    },
+    {
+      "name": "updates",
+      "description": "Change information about an individual user"
+    },
+    {
+      "name": "user",
+      "description": "Getting information about users"
+    }
+  ],
+  "schemes": [
+    "https"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "securityDefinitions": {
+    "sessionCookie": {
+      "type": "apiKey",
+      "name": "sid",
+      "in": "header"
+    }
+  },
+  "paths": {
+    "/api/auth": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Logs in user",
+        "description": "Creates a user session, if it exists, and returns data about it.",
+        "operationId": "login",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Login and password for authentification",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LoginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succesfully loggged in",
+            "headers": {
+              "Set-Cookie": {
+                "type": "string"
+              }
+            },
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "400": {
+            "description": "Failed to read request body"
+          },
+          "default": {
+            "description": "Log-in failed",
+            "schema": {
+              "$ref": "#/definitions/ErrorPayload"
+            }
+          }
+        }
+      }
+    },
+    "/api/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register new user",
+        "description": "Creates new user in database and user session, if it not exists, and returns data about it.",
+        "operationId": "register",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Login, password and email for registration",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RegisterRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succesfully registered",
+            "headers": {
+              "Set-Cookie": {
+                "type": "string"
+              }
+            },
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "400": {
+            "description": "Failed to read request body"
+          },
+          "default": {
+            "description": "Registration failed",
+            "schema": {
+              "$ref": "#/definitions/ErrorPayload"
+            }
+          }
+        }
+      }
+    },
+    "/api/upload_avatar": {
+      "post": {
+        "tags": [
+          "updates"
+        ],
+        "summary": "Updates user avatar",
+        "description": "Uploads a picture with an avatar to the server and gives a new path to the user",
+        "operationId": "upload_avatar",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "formData",
+            "name": "avatar",
+            "type": "file",
+            "description": "User avatar form data with avatar file",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succesfully uploaded",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "403": {
+            "description": "Unauthorized"
+          },
+          "default": {
+            "description": "Upload failed",
+            "schema": {
+              "$ref": "#/definitions/ErrorPayload"
+            }
+          }
+        }
+      }
+    },
+    "/api/profile": {
+      "get": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Get information about user",
+        "description": "Get login, email and avatar path",
+        "operationId": "get_profile",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "User data response",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "403": {
+            "description": "Unauthorized"
+          },
+          "default": {
+            "description": "Verification failed",
+            "schema": {
+              "$ref": "#/definitions/ErrorPayload"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "updates"
+        ],
+        "summary": "Updates information about user",
+        "description": "Updates login or email",
+        "operationId": "update_profile",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Login, password and email for registration",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProfileRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succesfully updated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "400": {
+            "description": "Failed to read request body"
+          },
+          "403": {
+            "description": "Unauthorized"
+          },
+          "default": {
+            "description": "Update failed",
+            "schema": {
+              "$ref": "#/definitions/ErrorPayload"
+            }
+          }
+        }
+      }
+    },
+    "/api/leaderboard/{page}": {
+      "get": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Get information about best users",
+        "description": "Returns information about the top users located on the requested page",
+        "operationId": "get_leaders",
+        "produces": [
+          "application/json"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "path",
+            "description": "Page to return information about",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succesfully returned",
+            "schema": {
+              "$ref": "#/definitions/UsersResponse"
+            }
+          },
+          "403": {
+            "description": "Unauthorized"
+          },
+          "default": {
+            "description": "Get-request failed",
+            "schema": {
+              "$ref": "#/definitions/ErrorPayload"
+            }
+          }
+        }
+      }
+    },
+    "/api/login": {
+      "delete": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Logout user",
+        "description": "Delete user session",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "description": "Succesfully logged out"
+          },
+          "403": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "LoginRequest": {
+      "type": "object",
+      "properties": {
+        "login": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "RegisterRequest": {
+      "type": "object",
+      "properties": {
+        "login": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "ProfileRequest": {
+      "type": "object",
+      "properties": {
+        "login": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "UsersResponse": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LeaderboardUser"
+          }
+        },
+        "count": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "DefaultResponse": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/definitions/UserInfo"
+        }
+      }
+    },
+    "UserInfo": {
+      "type": "object",
+      "properties": {
+        "login": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "avatar": {
+          "type": "string"
+        },
+        "score": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "LeaderboardUser": {
+      "type": "object",
+      "properties": {
+        "login": {
+          "type": "string"
+        },
+        "score": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "ErrorPayload": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/definitions/Error"
+        }
+      }
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "field": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
