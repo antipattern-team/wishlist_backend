@@ -8,8 +8,6 @@ services:
         discovery.type: 'single-node'
         network.host: '0'
         ES_JAVA_OPTS: '-Xms200m -Xmx200m'
-#    ports:
-#      - 10200:9200
     volumes:
       - ../data/elasticsearch:/usr/share/elasticsearch/data:rw
 
@@ -53,6 +51,14 @@ services:
     depends_on:
       - elastic
       - postgres
-    ports:
+#    ports:
 #     Provide this variable with the .env file
-      - ${PORT}:8080
+#      - ${PORT}:8080
+
+  nginx:
+    build: './nginx'
+    ports:
+      - "8080:80"
+      - "44380:443"
+    depends_on:
+      - api
