@@ -40,7 +40,6 @@ class Field:
         if value is None:
             if self.required:
                 if self.default:
-                    # return self.f_type(self.default)
                     return self.default
                 else:
                     raise ValueError('missing value for required field')
@@ -118,26 +117,22 @@ class ModelMeta(type):
 
 
 class QuerySet:
-    def __init__(self, _connection, _model, **kwargs):
+    def __init__(self, connection_pool, _model, **kwargs):
         self._model = _model
         self._filter = {}
         self._slices = []
-        self._conn = _connection
+        self._pool = connection_pool
 
         self._add_rules(**kwargs)
 
     def _add_rules(self, **kwargs):
-        # print('[_add_rules]', kwargs)
         for k, v in kwargs.items():
             if k not in self._model._fields:
                 raise ValueError(f'Unknown field {k}')
             self._filter[k] = self._model._fields[k].validate(v)
 
-        # self._filter = {**self._filter, **kwargs}
-
     def filter(self, **kwargs):
         self._add_rules(**kwargs)
-        # print(self._filter)
         return self
 
     def __getitem__(self, item):
@@ -192,10 +187,11 @@ class QuerySet:
                 query += f' LIMIT {limit}'
 
         query += ';'
-        # print(query)
 
         models = []
-        objects = await self._conn.fetch(query, *gen.variables)
+        async with self._pool.acquire() as conn:
+            objects = await conn.fetch(query, *gen.variables)
+
         for obj in objects:
             fields = {}
             for field in self._model._fields:
@@ -237,29 +233,33 @@ class QuerySet:
 
         query += ';'
 
-        # print(query)
-        await self._conn.execute(query, *gen.variables)
+        async with self._pool.acquire() as conn:
+            await conn.execute(query, *gen.variables)
 
     async def delete(self):
-        query = f'DELETE FROM {self._model._table_name} WHERE    '
+        query = f'DELETE FROM {self._model._table_name}'
 
         gen = _QueryVariableGenerator()
 
-        for k, v in self._filter.items():
-            query += f' {k} = {gen.get_variable(v)} and'
-        query = query[:-4] + ';'
+        if len(self._filter.items()) > 0:
+            query += ' WHERE'
 
-        # print(query)
-        await self._conn.execute(query, *gen.variables)
+            for k, v in self._filter.items():
+                query += f' {k} = {gen.get_variable(v)} and'
+            query = query[:-4]
+        query += ';'
+
+        async with self._pool.acquire() as conn:
+            await conn.execute(query, *gen.variables)
 
 
 class Manage:
-    _conn = None
+    _pool = None
 
     @classmethod
     async def init_conn(cls, user, password, database, host):
-        cls._conn = await asyncpg.connect(user=user, password=password,
-                                          database=database, host=host)
+        cls._pool = await asyncpg.create_pool(user=user, password=password,
+                                              database=database, host=host)
 
     def __init__(self):
         self.model_cls = None
@@ -273,16 +273,16 @@ class Manage:
         await self.model_cls(**kwargs).save()
 
     async def update(self, **kwargs):
-        return await QuerySet(self._conn, self.model_cls).update(**kwargs)
+        return await QuerySet(self._pool, self.model_cls).update(**kwargs)
 
     async def delete(self, **kwargs):
-        return await QuerySet(self._conn, self.model_cls).delete(**kwargs)
+        return await QuerySet(self._pool, self.model_cls).delete(**kwargs)
 
     async def get(self):
-        return await QuerySet(self._conn, self.model_cls).get()
+        return await QuerySet(self._pool, self.model_cls).get()
 
     def filter(self, **kwargs):
-        return QuerySet(self._conn, self.model_cls, **kwargs)
+        return QuerySet(self._pool, self.model_cls, **kwargs)
 
 
 class Model(metaclass=ModelMeta):
@@ -353,7 +353,6 @@ class Model(metaclass=ModelMeta):
                     continue
 
                 query += f' {k} = {gen.get_variable(v)},'
-            # query = query[:-1] + f' WHERE {primary_field} = {getattr(self, primary_field)}  '
             query = query[:-1]
 
             if len(none_fields) > 0:
@@ -387,14 +386,13 @@ class Model(metaclass=ModelMeta):
                 query += f'{field}, '
             query = query[:-2] + ';'
 
-        # print(query)
-
-        if len(none_fields) > 0:
-            res = (await self.objects._conn.fetch(query, *gen.variables))[0]
-            for field in none_fields:
-                setattr(self, field, res[field])
-        else:
-            await self.objects._conn.execute(query, *gen.variables)
+        async with self.objects._pool.acquire() as conn:
+            if len(none_fields) > 0:
+                res = (await conn.fetch(query, *gen.variables))[0]
+                for field in none_fields:
+                    setattr(self, field, res[field])
+            else:
+                await conn.execute(query, *gen.variables)
 
     async def delete(self):
         primary_field = self._primary
