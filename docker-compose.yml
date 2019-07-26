@@ -10,14 +10,17 @@ services:
         ES_JAVA_OPTS: '-Xms200m -Xmx200m'
 #    ports:
 #      - 10200:9200
+    volumes:
+      - ../data/elasticsearch:/usr/share/elasticsearch/data:rw
 
   crawler:
     environment:
       ESHOST: 'elastic'
       PGHOST: 'postgres'
 #     Provide this variable with the .env file
+      POSTGRES_USER: 'server'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DATABASE: 'wishlist'
+      POSTGRES_DB: 'wishlist'
     build:
       context: './crawler'
       dockerfile: './Dockerfile'
@@ -30,18 +33,20 @@ services:
     image: postgres:latest
     environment:
 #     Provide this variable with the .env file
+      POSTGRES_USER: 'server'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DATABASE: 'wishlist'
+      POSTGRES_DB: 'wishlist'
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-
+      - ../data/postgres:/var/lib/postgresql/data
   api:
     environment:
       ESHOST: 'elastic'
       PGHOST: 'postgres'
 #     Provide this variable with the .env file
+      POSTGRES_USER: 'server'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DATABASE: 'wishlist'
+      POSTGRES_DB: 'wishlist'
     build:
       context: './api'
       dockerfile: './Dockerfile'

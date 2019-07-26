@@ -1,53 +1,45 @@
+import time
 from aiohttp import web
+import aiohttp_cors
 from routes import routes
-from orm.orm import Manage
 from auth_client import AuthRpcClient
 import os
+from models import Manage
 
 if __name__ == '__main__':
+    sleep = False
+    if 'SLEEP' in os.environ:
+        sleep = bool(os.environ['SLEEP'])
 
-    app = web.Application()
+    es_host = 'localhost'
+    if 'ESHOST' in os.environ:
+        es_host = os.environ['ESHOST']
 
     pg_host = 'localhost'
     if 'PGHOST' in os.environ:
         pg_host = os.environ['PGHOST']
 
     pg_database = 'wishlist'
-    if 'POSTGRES_DATABASE' in os.environ:
-        pg_database = os.environ['POSTGRES_DATABASE']
+    if 'POSTGRES_DB' in os.environ:
+        pg_database = os.environ['POSTGRES_DB']
 
     pg_password = ''
     if 'POSTGRES_PASSWORD' in os.environ:
         pg_password = os.environ['POSTGRES_PASSWORD']
 
-    rmq_host = 'localhost'
-    if 'RMQHOST' in os.environ:
-        rmq_host = os.environ['RMQHOST']
+    pg_user = 'postgres'
+    if 'POSTGRES_USER' in os.environ:
+        pg_user = os.environ['POSTGRES_USER']
 
-    rmq_login = 'guest'
-    if 'RMQ_LOGIN' in os.environ:
-        pg_host = os.environ['RMQ_LOGIN']
+    if sleep:
+        secs = 60
+        print(f'Sleeping for {secs} secs')
+        time.sleep(secs)
+        print('Slept')
 
-    rmq_password = 'guest'
-    if 'RMQ_PASSWORD' in os.environ:
-        rmq_password = os.environ['RMQ_PASSWORD']
-
-    server_port = 8080
-    if 'SERVER_PORT' in os.environ:
-        pg_database = os.environ['SERVER_PORT']
-
-    app.auth_key = '123'
-    if 'AUTH_KEY' in os.environ:
-        app.auth_key = bool(os.environ['AUTH_KEY'])
-
-
-    async def on_startup(app: web.Application):
-        await Manage.init_conn(
-            user='postgres',
-            password=pg_password,
-            database=pg_database,
-            host=pg_host
-        )
+    async def on_startup(app):
+        await Manage.init_conn(user=pg_user, password=pg_password,
+                               database=pg_database, host=pg_host)
         app.auth_connection = await AuthRpcClient().connect(
             host=rmq_host,
             port=5672,
@@ -55,12 +47,22 @@ if __name__ == '__main__':
             password=rmq_password,
         )
 
+    app = web.Application()
     app.on_startup.append(on_startup)
 
-    # route part
     for method, route, handler, name in routes:
         app.router.add_route(method, route, handler, name=name)
-    web.run_app(
-        app,
-        port=server_port
-    )
+
+    cors = aiohttp_cors.setup(app, defaults={
+        "*": aiohttp_cors.ResourceOptions(
+            allow_credentials=True,
+            expose_headers="*",
+            allow_headers="*",
+            allow_methods=['GET', 'POST', 'DELETE']
+        )
+    })
+
+    for route in list(app.router.routes()):
+        cors.add(route)
+
+    web.run_app(app, host='0.0.0.0', port=8080)

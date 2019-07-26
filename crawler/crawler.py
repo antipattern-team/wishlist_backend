@@ -11,7 +11,7 @@ from db import DB, db_factory
 
 class Crawler:
     def __init__(self, name: str, root: str, parser: Parser, fps: int,
-                 pg_db: DB, es_db: DB, pg_host: str, es_host: str, pg_db_name, pg_db_pass,
+                 pg_db: DB, es_db: DB, pg_host: str, es_host: str, pg_db_name, pg_db_user, pg_db_pass,
                  debug: bool, filename: str = 'db.txt'):
         self._name: str = name
         self._root: str = root
@@ -22,6 +22,7 @@ class Crawler:
         self._pg_host: str = pg_host
         self._es_host: str = es_host
         self._pg_db_name: str = pg_db_name
+        self._pg_db_user: str = pg_db_user
         self._pg_db_pass: str = pg_db_pass
         self._debug: bool = debug
         self._file: str = filename
@@ -31,7 +32,7 @@ class Crawler:
         self._net_sess = aiohttp.ClientSession()
         if not await self._es_db.connect(self._es_host):
             raise ConnectionError('Couldn\'t connect to es')
-        if not await self._pg_db.connect(host=self._es_host, user='postgres',
+        if not await self._pg_db.connect(host=self._pg_host, user=self._pg_db_user,
                                          password=self._pg_db_pass, database=self._pg_db_name):
             raise ConnectionError('Couldn\'t connect to pg')
 
@@ -111,12 +112,16 @@ def main():
         pg_host = os.environ['PGHOST']
 
     pg_database = 'wishlist'
-    if 'POSTGRES_DATABASE' in os.environ:
-        pg_database = os.environ['POSTGRES_DATABASE']
+    if 'POSTGRES_DB' in os.environ:
+        pg_database = os.environ['POSTGRES_DB']
 
     pg_password = ''
     if 'POSTGRES_PASSWORD' in os.environ:
         pg_password = os.environ['POSTGRES_PASSWORD']
+
+    pg_user = 'postgres'
+    if 'POSTGRES_USER' in os.environ:
+        pg_user = os.environ['POSTGRES_USER']
 
     fps = 10
     if 'FPS' in os.environ:
@@ -132,7 +137,7 @@ def main():
 
     crawler = Crawler(name=name, root=root, parser=parser, fps=fps,
                       es_db=es, pg_db=pg, es_host=es_host, pg_host=pg_host,
-                      pg_db_name=pg_database, pg_db_pass=pg_password,
+                      pg_db_name=pg_database, pg_db_user=pg_user, pg_db_pass=pg_password,
                       debug=debug, filename=filename)
 
     loop = asyncio.get_event_loop()

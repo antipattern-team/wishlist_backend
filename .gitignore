@@ -8,6 +8,9 @@ __pycache__
 #Docker-Compose
 .env
 
+#Storages
+data/
+
 #Convinient stuff
 test/
 db.txt
