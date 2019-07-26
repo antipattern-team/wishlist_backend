@@ -5,6 +5,8 @@ import asyncpg
 # 1) Unique fields
 # 2) Orderby
 # 3) Filter > < >= <= conditionals
+# 4) __aiter__, __anext__
+# 5) __slots__
 
 
 class _QueryVariableGenerator:
@@ -203,10 +205,13 @@ class QuerySet:
 
         return models
 
-    async def __aiter__(self):
-        models = await self.get()
-        for model in models:
-            yield model
+    # async def __aiter__(self):
+    #     models = await self.get()
+    #     for model in models:
+    #         yield model
+
+    def __await__(self):
+        return self.get().__await__()
 
     async def update(self, **kwargs):
         query = f'UPDATE {self._model._table_name} SET '
@@ -498,8 +503,10 @@ async def _orm_test():
     #     except ValueError as v:
     #         print('Got error:', v.args)
     #
-    async for obj in User.objects.filter():
+    for obj in await User.objects.filter():
         print(obj.uid, obj.vkid, obj.wishes)
+
+    # User.objects.delete(vkid='lol')
 
     # User.objects.create(id=1, name='name')
     # User.objects.update(id=1)

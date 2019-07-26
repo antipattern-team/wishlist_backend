@@ -65,7 +65,9 @@ class PostgesDB(DB):
             #                                    database=database, host=host)
             self._pool = await asyncpg.create_pool(user=user, password=password,
                                                    database=database, host=host)
-        except BaseException:
+        except BaseException as ex:
+            print('Exception occured during connection:', ex)
+            raise ex
             return False
 
         return True
