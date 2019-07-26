@@ -8,12 +8,6 @@ def auth_mw(handler):
         jwt_present = "jwt_token" in request.cookies.keys()
         key = request.app.auth_key
 
-        if "vktoken" in request.cookies.keys():  # todo(Usatiynyan): remake when vktoken implemented
-            print(request.cookies.get("vktoken"))
-
-        # variant 1) The needed id is already obtained from frontend request
-        # variant 2) Insert vk api request for user data here
-
         # 0) check if jwt_token is_valid
         if jwt_present:
             jwt_token = request.cookies.get("jwt_token")
@@ -24,6 +18,13 @@ def auth_mw(handler):
                 # 0.5) if not valid, just delete it ?
                 pass
 
+        if "vktoken" in request.cookies.keys():  # todo(Usatiynyan): remake when vktoken implemented
+            print(request.cookies.get("vktoken"))
+
+        # variant 1) The needed id is already obtained from frontend request
+        # variant 2) Insert vk api request for user data here
+
+        if jwt_present:
             # obtain uid from jwt
             uid = decoded_token.get("uid")
         else:
