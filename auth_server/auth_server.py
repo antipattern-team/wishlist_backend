@@ -1,24 +1,27 @@
 import asyncio
 from functools import partial
 from aio_pika import connect, IncomingMessage, Exchange, Message
+import jwt
+import os
 
 
-async def auth(msg):  # main authentication
-    await asyncio.sleep(int(msg))
-    return msg
+async def auth(msg, key):  # main authentication
+    encoded_token = jwt.encode({'uid': msg}, key, algorithm='HS256')
+    print(f" [.] got({jwt.decode(encoded_token, '123', algorithms=['HS256'])})")
+    await asyncio.sleep(0.05)
+    return encoded_token
 
 
-async def on_message(exchange: Exchange, message: IncomingMessage):
+async def on_message(exchange: Exchange, key, message: IncomingMessage):
     with message.process():
 
         msg = message.body.decode()
 
-        # print(f" [.] got({msg})")
-        response = str(await auth(msg)).encode()
+        response = str(await auth(msg, key))
 
         await exchange.publish(
             Message(
-                body=response,
+                body=response.encode("ascii"),
                 correlation_id=message.correlation_id
             ),
             routing_key=message.reply_to
@@ -26,7 +29,7 @@ async def on_message(exchange: Exchange, message: IncomingMessage):
         # print('Request complete')
 
 
-async def main(loop):
+async def main(loop, key):
     connection = await connect(  # "amqp://guest:guest@localhost/",
         host="localhost",
         port=5672,
@@ -42,13 +45,17 @@ async def main(loop):
     await queue.consume(
         partial(
             on_message,
-            channel.default_exchange
+            channel.default_exchange,
+            key
         )
     )
 
 
 if __name__ == "__main__":
+    key = '123'
+    if 'AUTH_KEY' in os.environ:
+        key = bool(os.environ['AUTH_KEY'])
     loop = asyncio.get_event_loop()
-    loop.create_task(main(loop))
-    # print(" [x] Awaiting RPC requests")
+    loop.create_task(main(loop, key))
+    print(" [x] Awaiting RPC requests")
     loop.run_forever()

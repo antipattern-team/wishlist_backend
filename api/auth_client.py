@@ -1,6 +1,8 @@
 import asyncio
 import uuid
 from aio_pika import connect, IncomingMessage, Message
+import jwt
+import os
 
 
 class AuthRpcClient:
@@ -11,12 +13,12 @@ class AuthRpcClient:
         self.futures = {}
         self.loop = asyncio.get_running_loop()
 
-    async def connect(self):
+    async def connect(self, host, port, login, password):
         self.connection = await connect(  # "amqp://guest:guest@localhost/",
-            host="localhost",
-            port=5672,
-            login='guest',
-            password='guest',
+            host=host,
+            port=port,
+            login=login,
+            password=password,
             loop=asyncio.get_running_loop()
         )
         self.channel = await self.connection.channel()
@@ -47,16 +49,29 @@ class AuthRpcClient:
             routing_key='auth_queue',
         )
 
-        return int(await future)
+        response: bytes = await future
+        response_str = response.decode()
+        if response_str.startswith("b'"):
+            response_str = response_str[2:-1]
+        return response_str
 
 
-async def _main():
-    auth_rpc = await AuthRpcClient().connect()
-    uid = 12
-    print(f" [x] Requesting auth{uid}")
-    response = await auth_rpc.call(uid)
-    print(f" [.] Got {response}")
+async def _test():
+    auth_rpc = await AuthRpcClient().connect(
+        host="localhost",
+        port=5672,
+        login='guest',
+        password='guest',
+    )
+    uid = "1234564546454"
+    print(f" [x] Requesting auth {uid}")
+    response_str = await auth_rpc.call(uid)
+    key = '123'
+    if 'AUTH_KEY' in os.environ:
+        key = bool(os.environ['AUTH_KEY'])
+    token = jwt.decode(response_str, key, algorithms=['HS256'])
+    print(f" [.] Got {token}")
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(_main())
+    loop.run_until_complete(_test())
