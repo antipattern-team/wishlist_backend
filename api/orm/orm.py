@@ -3,7 +3,8 @@ import asyncpg
 
 # todo
 # 1) Unique fields
-# 2) ...
+# 2) Orderby
+# 3) Filter > < >= <= conditionals
 
 
 class _QueryVariableGenerator:
