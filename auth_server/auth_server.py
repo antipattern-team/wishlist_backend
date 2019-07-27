@@ -3,6 +3,7 @@ from functools import partial
 from aio_pika import connect, IncomingMessage, Exchange, Message
 import jwt
 import os
+import time
 
 
 async def auth(msg, key):  # main authentication
@@ -29,9 +30,9 @@ async def on_message(exchange: Exchange, key, message: IncomingMessage):
         # print('Request complete')
 
 
-async def main(loop, key):
+async def main(loop, key, host):
     connection = await connect(  # "amqp://guest:guest@localhost/",
-        host="localhost",
+        host=host,
         port=5672,
         login='guest',
         password='guest',
@@ -55,7 +56,22 @@ if __name__ == "__main__":
     key = '123'
     if 'AUTH_KEY' in os.environ:
         key = bool(os.environ['AUTH_KEY'])
+
+    sleep = False
+    if 'SLEEP' in os.environ:
+        sleep = bool(os.environ['SLEEP'])
+
+    rmq_host = 'localhost'
+    if 'RMQHOST' in os.environ:
+        rmq_host = os.environ['RMQHOST']
+
+    if sleep:
+        secs = 60
+        print(f'Sleeping for {secs} secs')
+        time.sleep(secs)
+        print('Slept')
+
     loop = asyncio.get_event_loop()
-    loop.create_task(main(loop, key))
+    loop.create_task(main(loop, key, rmq_host))
     print(" [x] Awaiting RPC requests")
     loop.run_forever()

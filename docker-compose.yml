@@ -39,6 +39,16 @@ services:
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
       - ../data/postgres:/var/lib/postgresql/data
+
+  rabbitmq:
+    restart: always
+    image: rabbitmq:latest
+    ports:
+      # The standard AMQP protocol port
+      - 5674:5674
+      # HTTP management UI
+      - 15674:15674
+
   api:
     environment:
       ESHOST: 'elastic'
@@ -53,6 +63,19 @@ services:
     depends_on:
       - elastic
       - postgres
+      - rabbitmq
     ports:
 #     Provide this variable with the .env file
       - ${PORT}:8080
+
+  auth:
+    environment:
+      RMQHOST: 'rabbitmq'
+    build:
+      context: './auth_server'
+      dockerfile: './Dockerfile'
+    depends_on:
+      - rabbitmq
+#    ports:
+##     Provide this variable with the .env file
+#      - ${PORT}:8080
