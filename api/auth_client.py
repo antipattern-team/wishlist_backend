@@ -2,7 +2,7 @@ import asyncio
 import uuid
 from aio_pika import connect, IncomingMessage, Message
 import jwt
-import os
+from settings import auth_key
 
 
 class AuthRpcClient:
@@ -13,12 +13,9 @@ class AuthRpcClient:
         self.futures = {}
         self.loop = asyncio.get_running_loop()
 
-    async def connect(self, host, port, login, password):
+    async def connect(self, host):
         self.connection = await connect(  # "amqp://guest:guest@localhost/",
             host=host,
-            port=port,
-            login=login,
-            password=password,
             loop=asyncio.get_running_loop()
         )
         self.channel = await self.connection.channel()
@@ -59,17 +56,11 @@ class AuthRpcClient:
 async def _test():
     auth_rpc = await AuthRpcClient().connect(
         host="localhost",
-        port=5672,
-        login='guest',
-        password='guest',
     )
     uid = "1234564546454"
     print(f" [x] Requesting auth {uid}")
     response_str = await auth_rpc.call(uid)
-    key = '123'
-    if 'AUTH_KEY' in os.environ:
-        key = bool(os.environ['AUTH_KEY'])
-    token = jwt.decode(response_str, key, algorithms=['HS256'])
+    token = jwt.decode(response_str, auth_key, algorithms=['HS256'])
     print(f" [.] Got {token}")
 
 if __name__ == "__main__":

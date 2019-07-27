@@ -3,34 +3,10 @@ from aiohttp import web
 import aiohttp_cors
 from routes import routes
 from auth_client import AuthRpcClient
-import os
 from models import Manage
+from settings import *
 
 if __name__ == '__main__':
-    sleep = False
-    if 'SLEEP' in os.environ:
-        sleep = bool(os.environ['SLEEP'])
-
-    es_host = 'localhost'
-    if 'ESHOST' in os.environ:
-        es_host = os.environ['ESHOST']
-
-    pg_host = 'localhost'
-    if 'PGHOST' in os.environ:
-        pg_host = os.environ['PGHOST']
-
-    pg_database = 'wishlist'
-    if 'POSTGRES_DB' in os.environ:
-        pg_database = os.environ['POSTGRES_DB']
-
-    pg_password = ''
-    if 'POSTGRES_PASSWORD' in os.environ:
-        pg_password = os.environ['POSTGRES_PASSWORD']
-
-    pg_user = 'postgres'
-    if 'POSTGRES_USER' in os.environ:
-        pg_user = os.environ['POSTGRES_USER']
-
     if sleep:
         secs = 60
         print(f'Sleeping for {secs} secs')
@@ -42,9 +18,6 @@ if __name__ == '__main__':
                                database=pg_database, host=pg_host)
         app.auth_connection = await AuthRpcClient().connect(
             host=rmq_host,
-            port=5672,
-            login=rmq_login,
-            password=rmq_password,
         )
 
     app = web.Application()

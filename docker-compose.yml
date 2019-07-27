@@ -11,7 +11,7 @@ services:
 #    ports:
 #      - 10200:9200
     volumes:
-      - ../data/elasticsearch:/usr/share/elasticsearch/data:rw
+        - ../data/elasticsearch:/usr/share/elasticsearch/data:rw
 
   crawler:
     environment:
@@ -53,6 +53,8 @@ services:
     environment:
       ESHOST: 'elastic'
       PGHOST: 'postgres'
+      RMQHOST: 'rabbitmq'
+      AUTHKEY: '123'
 #     Provide this variable with the .env file
       POSTGRES_USER: 'server'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -71,11 +73,9 @@ services:
   auth:
     environment:
       RMQHOST: 'rabbitmq'
+      AUTHKEY: '123'
     build:
       context: './auth_server'
       dockerfile: './Dockerfile'
     depends_on:
       - rabbitmq
-#    ports:
-##     Provide this variable with the .env file
-#      - ${PORT}:8080
