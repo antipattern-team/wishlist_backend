@@ -3,9 +3,13 @@ import time
 from aiohttp import web
 import aiohttp_cors
 from routes import routes
-from models import Manage
+from models import *
 
 if __name__ == '__main__':
+    debug = False
+    if 'DEBUG' in os.environ:
+        debug = bool(os.environ['DEBUG'])
+
     sleep = False
     if 'SLEEP' in os.environ:
         sleep = bool(os.environ['SLEEP'])
@@ -39,6 +43,26 @@ if __name__ == '__main__':
     async def on_startup(app):
         await Manage.init_conn(user=pg_user, password=pg_password,
                                database=pg_database, host=pg_host)
+
+        if debug:
+            try:
+                await User.objects.create(uid=90000, vkid='generic_test_user')
+                await User.objects.create(uid=90001, vkid='generic_test_user1')
+            except User.UniqueViolation:
+                pass
+
+            try:
+                await Product.objects.create(pid=90000, name='generic_test_product',
+                                             reference='generic_test_reference',
+                                             image='generic_test_image', price=1000)
+
+            except Product.UniqueViolation:
+                pass
+
+            try:
+                await Wants.objects.create(id=90000, uid=90000, pid=90000, gid=90001)
+            except Wants.UniqueViolation:
+                pass
 
     app = web.Application()
     app.on_startup.append(on_startup)

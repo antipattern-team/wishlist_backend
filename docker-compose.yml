@@ -19,6 +19,7 @@ services:
       POSTGRES_USER: 'server'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: 'wishlist'
+      DEBUG: ${DEBUG}
     build:
       context: './crawler'
       dockerfile: './Dockerfile'
@@ -45,6 +46,7 @@ services:
       POSTGRES_USER: 'server'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: 'wishlist'
+      DEBUG: ${DEBUG}
     build:
       context: './api'
       dockerfile: './Dockerfile'

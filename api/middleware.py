@@ -18,14 +18,14 @@ def auth_mw(handler):
             token = request.cookies['token']
             # todo: send token
             # todo: get uid
-            uid = None
+            uid = 90000
         else:
             # todo: somehow get vkid
             # todo: send vkid
             # todo: get uid
             # todo: get token
             token = 'token'
-            uid = None
+            uid = 90000
 
         context['uid'] = uid
         response = await handler(request, context)

@@ -31,10 +31,15 @@ async def get_products_search(request):
 async def get_products_popular(request):
     resp = list()
 
-    products = await Product.objects.get()
-    sorted(products, key=lambda p: p.rate, reverse=True)
+    try:
+        popular = await Popular.objects.get()
+    except Popular.DoesNotExist:
+        popular = []
 
-    for product in await Product.objects.get():
+    sorted(popular, key=lambda p: p.rate, reverse=True)
+
+    for pop in popular:
+        product = await Product.objects.filter(pid=pop.pid).get_one()
         resp.append({
                 'pid': product.pid,
                 'reference': product.reference,
@@ -194,7 +199,7 @@ async def add_to_wishlist(request, context):
             'source': 'body',
             'info': 'Request body is empty'
         }
-        raise web.HTTPBadRequest(body=web.json_response(body))
+        return web.json_response(body, status=400)
 
     try:
         pid = body['pid']
@@ -205,7 +210,7 @@ async def add_to_wishlist(request, context):
             'source': 'pid',
             'info': 'pid is not specified in request body'
         }
-        raise web.HTTPBadRequest(body=web.json_response(body))
+        return web.json_response(body, status=400)
 
     try:
         await Product.objects.filter(pid=pid)
@@ -216,7 +221,7 @@ async def add_to_wishlist(request, context):
             'source': 'pid',
             'info': 'Can\'t find product with such pid'
         }
-        raise web.HTTPNotFound(body=web.json_response(body))
+        return web.json_response(body, status=404)
 
     try:
         await Wants.objects.create(uid=uid, pid=pid)
@@ -227,7 +232,7 @@ async def add_to_wishlist(request, context):
             'source': 'vkid and pid',
             'info': 'This product is already added to the wishlist'
         }
-        raise web.HTTPConflict(body=web.json_response(body))
+        return web.json_response(body, status=409)
 
     resp = {
         'result': 'success',
@@ -250,7 +255,7 @@ async def delete_from_wishlist(request, context):
             'source': 'body',
             'info': 'Request body is empty'
         }
-        raise web.HTTPBadRequest(body=web.json_response(body))
+        return web.json_response(body, status=400)
 
     try:
         pid = body['pid']
@@ -261,7 +266,7 @@ async def delete_from_wishlist(request, context):
             'source': 'pid',
             'info': 'pid is not specified in request body'
         }
-        raise web.HTTPBadRequest(body=web.json_response(body))
+        return web.json_response(body, status=400)
 
     try:
         product = await Product.objects.filter(pid=pid)
@@ -272,7 +277,7 @@ async def delete_from_wishlist(request, context):
             'source': 'pid',
             'info': 'Can\'t find product with such pid'
         }
-        raise web.HTTPNotFound(body=web.json_response(body))
+        return web.json_response(body, status=404)
 
 
 
@@ -284,7 +289,7 @@ async def delete_from_wishlist(request, context):
             'source': 'vkid and pid',
             'info': 'This product isn\'t added to the wishlist'
         }
-        raise web.HTTPConflict(body=web.json_response(body))
+        return web.json_response(body, status=409)
 
     resp = {
         'result': 'success',
@@ -307,8 +312,7 @@ async def get_user_wishlist(request):
             'source': 'vkid',
             'info': 'User with such vkid does not exist'
         }
-        raise web.HTTPNotFound(body=web.json_response(body))
-
+        return web.json_response(body, status=404)
     try:
         wishes = await Wants.objects.filter(uid=user.uid)
     except Wants.DoesNotExist:
@@ -358,7 +362,7 @@ async def reserve_gift_for_user(request, context):
             'source': 'body',
             'info': 'Request body is empty'
         }
-        raise web.HTTPBadRequest(body=web.json_response(body))
+        return web.json_response(body, status=400)
 
     try:
         pid = body['pid']
@@ -369,7 +373,7 @@ async def reserve_gift_for_user(request, context):
             'source': 'pid',
             'info': 'pid is not specified in request body'
         }
-        raise web.HTTPBadRequest(body=web.json_response(body))
+        return web.json_response(body, status=400)
 
     try:
         user = await User.objects.filter(vkid=vkid).get_one()
@@ -380,7 +384,7 @@ async def reserve_gift_for_user(request, context):
             'source': 'vkid',
             'info': 'User with such vkid does not exist'
         }
-        raise web.HTTPNotFound(body=web.json_response(body))
+        return web.json_response(body, status=404)
 
     try:
         await Product.objects.filter(pid=pid)
@@ -391,7 +395,7 @@ async def reserve_gift_for_user(request, context):
             'source': 'pid',
             'info': 'Can\'t find product with such pid'
         }
-        raise web.HTTPNotFound(body=web.json_response(body))
+        return web.json_response(body, status=404)
 
     try:
         wants = await Wants.objects.filter(uid=user.uid, pid=pid)
@@ -402,7 +406,7 @@ async def reserve_gift_for_user(request, context):
             'source': 'vkid and pid',
             'info': 'Can\'t find such gift'
         }
-        raise web.HTTPNotFound(body=web.json_response(body))
+        return web.json_response(body, status=404)
 
     if wants.gid is not None:
         body = {
@@ -411,7 +415,7 @@ async def reserve_gift_for_user(request, context):
             'source': 'vkid and pid',
             'info': 'This gift is already reserved'
         }
-        raise web.HTTPConflict(body=web.json_response(body))
+        return web.json_response(body, status=409)
 
     wants.gid = gid
     await wants.save()
@@ -438,7 +442,7 @@ async def cancel_gift_for_user(request, context):
             'source': 'body',
             'info': 'Request body is empty'
         }
-        raise web.HTTPBadRequest(body=web.json_response(body))
+        return web.json_response(body, status=400)
 
     try:
         pid = body['pid']
@@ -449,7 +453,7 @@ async def cancel_gift_for_user(request, context):
             'source': 'pid',
             'info': 'pid is not specified in request body'
         }
-        raise web.HTTPBadRequest(body=web.json_response(body))
+        return web.json_response(body, status=400)
 
     try:
         user = await User.objects.filter(vkid=vkid).get_one()
@@ -460,7 +464,7 @@ async def cancel_gift_for_user(request, context):
             'source': 'vkid',
             'info': 'User with such vkid does not exist'
         }
-        raise web.HTTPNotFound(body=web.json_response(body))
+        return web.json_response(body, status=404)
 
     try:
         await Product.objects.filter(pid=pid)
@@ -471,7 +475,7 @@ async def cancel_gift_for_user(request, context):
             'source': 'pid',
             'info': 'Can\'t find product with such pid'
         }
-        raise web.HTTPNotFound(body=web.json_response(body))
+        return web.json_response(body, status=404)
 
     try:
         wants = await Wants.objects.filter(uid=user.uid, pid=pid)
@@ -482,7 +486,7 @@ async def cancel_gift_for_user(request, context):
             'source': 'vkid and pid',
             'info': 'Can\'t find such gift'
         }
-        raise web.HTTPNotFound(body=web.json_response(body))
+        return web.json_response(body, status=404)
 
     if wants.gid != gid:
         body = {
@@ -491,7 +495,7 @@ async def cancel_gift_for_user(request, context):
             'source': 'vkid and pid',
             'info': 'This gift isn\'t reserved by current user'
         }
-        raise web.HTTPConflict(body=web.json_response(body))
+        return web.json_response(body, status=409)
 
     wants.gid = None
     await wants.save()

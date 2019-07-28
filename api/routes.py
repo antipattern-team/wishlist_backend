@@ -10,7 +10,7 @@ routes = [
     ('GET',    '/wishlist',                 get_wishlist,            'wishlist'),
     ('POST',   '/wishlist',                 add_to_wishlist,         'wishlist_add'),
     ('DELETE', '/wishlist',                 delete_from_wishlist,    'wishlist_remove'),
-    ('GET',    '/wishlist/{uid}',           get_user_wishlist,       'user_wishlist'),
-    ('POST',   '/wishlist/{uid}',           reserve_gift_for_user,   'user_gift_add'),
-    ('DELETE', '/wishlist/{uid}',           cancel_gift_for_user,    'user_gift_remove'),
+    ('GET',    '/wishlist/{vkid}',          get_user_wishlist,       'user_wishlist'),
+    ('POST',   '/wishlist/{vkid}',          reserve_gift_for_user,   'user_gift_add'),
+    ('DELETE', '/wishlist/{vkid}',          cancel_gift_for_user,    'user_gift_remove'),
 ]
