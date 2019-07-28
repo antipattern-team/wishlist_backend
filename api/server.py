@@ -70,16 +70,16 @@ if __name__ == '__main__':
     for method, route, handler, name in routes:
         app.router.add_route(method, route, handler, name=name)
 
-    cors = aiohttp_cors.setup(app, defaults={
-        "*": aiohttp_cors.ResourceOptions(
-            allow_credentials=True,
-            expose_headers="*",
-            allow_headers="*",
-            allow_methods=['GET', 'POST', 'DELETE']
-        )
-    })
+    # cors = aiohttp_cors.setup(app, defaults={
+    #     "*": aiohttp_cors.ResourceOptions(
+    #         allow_credentials=True,
+    #         expose_headers="*",
+    #         allow_headers="*",
+    #         allow_methods=['GET', 'POST', 'DELETE']
+    #     )
+    # })
 
-    for route in list(app.router.routes()):
-        cors.add(route)
+    # for route in list(app.router.routes()):
+    #     cors.add(route)
 
     web.run_app(app, host='0.0.0.0', port=8080)
