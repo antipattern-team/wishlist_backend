@@ -171,6 +171,12 @@
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
+          },
+          "409": {
+            "description": "Conflict, such product is already added to current user's wishlist",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
           }
         }
       },
@@ -220,6 +226,12 @@
           },
           "404": {
             "description": "Desired product not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict, such product isn`t added to current user's wishlist",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -319,8 +331,8 @@
               "$ref": "#/definitions/ErrorResponse"
             }
           },
-          "default": {
-            "description": "This gift is already reserved",
+          "409": {
+            "description": "Conflict, this gift is already reserved",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -384,8 +396,8 @@
               "$ref": "#/definitions/ErrorResponse"
             }
           },
-          "default": {
-            "description": "This gift is not reserved by current user",
+          "409": {
+            "description": "Conflict, this gift is not reserved by current user",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
