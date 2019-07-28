@@ -35,7 +35,7 @@ if __name__ == '__main__':
         pg_user = os.environ['POSTGRES_USER']
 
     if sleep:
-        secs = 60
+        secs = 65
         print(f'Sleeping for {secs} secs')
         time.sleep(secs)
         print('Slept')
