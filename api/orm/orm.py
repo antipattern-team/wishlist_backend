@@ -12,9 +12,8 @@ import asyncpg
 # 3) Filter > < >= <= conditionals
 # 4) __aiter__, __anext__
 # 5) __slots__
-# 6) DELETE ... RETURNING
-# 7) _is_valid check before performing actions with the objects
-# 8) Return object created using Model.objects.create()
+# 6) _is_valid check before performing actions with the objects
+# 7) Return object created using Model.objects.create()
 
 
 class _QueryVariableGenerator:
@@ -103,7 +102,12 @@ class ModelMeta(type):
             def __init__(self, *args, **kwargs):
                 super().__init__(self, *args, **kwargs)
 
+        class UniqueViolation(Exception):
+            def __init__(self, *args, **kwargs):
+                super().__init__(self, *args, **kwargs)
+
         namespace['DoesNotExist'] = DoesNotExist
+        namespace['UniqueViolation'] = UniqueViolation
 
         fields = {k: v for k, v in namespace.items()
                   if isinstance(v, Field)}
@@ -246,10 +250,19 @@ class QuerySet:
                 query += f' {k} = {gen.get_variable(v)} and'
             query = query[:-4]
 
-        query += ';'
+        query += ' RETURNING *;'
 
         async with self._pool.acquire() as conn:
-            await conn.execute(query, *gen.variables)
+            objects = await conn.fetch(query, *gen.variables)
+
+        models = []
+        for obj in objects:
+            fields = {}
+            for field in self._model._fields:
+                fields[field] = obj[field]
+            models.append(self._model(**fields))
+
+        return models
 
     async def delete(self):
         query = f'DELETE FROM {self._model._table_name}'
@@ -262,11 +275,19 @@ class QuerySet:
             for k, v in self._filter.items():
                 query += f' {k} = {gen.get_variable(v)} and'
             query = query[:-4]
-        query += ';'
+        query += ' RETURNING *;'
 
         async with self._pool.acquire() as conn:
-            await conn.execute(query, *gen.variables)
+            objects = await conn.fetch(query, *gen.variables)
 
+        models = []
+        for obj in objects:
+            fields = {}
+            for field in self._model._fields:
+                fields[field] = obj[field]
+            models.append(self._model(**fields))
+
+        return models
 
 class Manage:
     _pool = None
@@ -384,11 +405,14 @@ class Model(metaclass=ModelMeta):
             query = query[:-1] + f') RETURNING {primary_field};'
 
         async with self.objects._pool.acquire() as conn:
-            if get_primary:
-                res = (await conn.fetch(query, *gen.variables))[0]
-                setattr(self, primary_field, res[primary_field])
-            else:
-                await conn.execute(query, *gen.variables)
+            try:
+                if get_primary:
+                    res = (await conn.fetch(query, *gen.variables))[0]
+                    setattr(self, primary_field, res[primary_field])
+                else:
+                    await conn.execute(query, *gen.variables)
+            except asyncpg.exceptions.UniqueViolationError:
+                raise self.UniqueViolation
 
     async def delete(self):
         primary_field = self._primary
@@ -397,8 +421,9 @@ class Model(metaclass=ModelMeta):
         if value is None:
             raise ValueError('Can\'t delete what\'s not saved')
 
-        await self.objects.filter(**{primary_field: value}).delete()
+        deleted_models = await self.objects.filter(**{primary_field: value}).delete()
         self._invalidate()
+        return deleted_models
 
 
 async def _orm_test():

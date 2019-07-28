@@ -71,6 +71,11 @@ async def test():
 
     user = User(vkid='test1')
     await user.save()
+    try:
+        user1 = User(vkid='test1')
+        await user1.save()
+    except User.UniqueViolation:
+        print('UniqueViolation')
     print(user.__dict__)
 
     product = Product(reference='ref', image='img', name='name', price=100)
@@ -94,8 +99,23 @@ async def test():
     print('delete product')
     await product.delete()
     print('delete user')
-    await user.delete()
+    user_deleted = User(uid=user.uid, vkid=user.vkid)
 
+    updated_objects = await User.objects.filter(uid=user.uid).update(wishes=1)
+    if len(updated_objects) != 1:
+        raise AssertionError
+
+    deleted_objects = await user.delete()
+    if len(deleted_objects) != 1:
+        raise AssertionError
+
+    deleted_objects = await user_deleted.delete()
+    if len(deleted_objects) != 0:
+        raise AssertionError
+
+    updated_objects = await User.objects.update(wishes=1)
+    if len(updated_objects) != 0:
+        raise AssertionError
 
 if __name__ == '__main__':
     asyncio.run(test())

@@ -326,7 +326,7 @@
             "description": "Anauthorized"
           },
           "404": {
-            "description": "Desired user/product not found",
+            "description": "Desired user/product/gift not found",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -391,7 +391,7 @@
             "description": "Anauthorized"
           },
           "404": {
-            "description": "Desired user/product not found",
+            "description": "Desired user/product/gift not found",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
