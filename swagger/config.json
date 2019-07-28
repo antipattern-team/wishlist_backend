@@ -157,11 +157,20 @@
               "$ref": "#/definitions/DefaultResponse"
             }
           },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
           "401": {
             "description": "Anauthorized"
           },
           "404": {
-            "description": "Desired product not found"
+            "description": "Desired product not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
           }
         }
       },
@@ -200,11 +209,20 @@
               "$ref": "#/definitions/DefaultResponse"
             }
           },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
           "401": {
             "description": "Anauthorized"
           },
           "404": {
-            "description": "Desired product not found"
+            "description": "Desired product not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
           }
         }
       }
@@ -217,11 +235,6 @@
         "summary": "Get current user`s wishlist",
         "description": "Get list of products those current user`s added to their wishlist",
         "operationId": "user_wishlist",
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
         "parameters": [
           {
             "name": "vkid",
@@ -242,7 +255,10 @@
             }
           },
           "404": {
-            "description": "Desired user not found"
+            "description": "Desired user not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
           }
         }
       },
@@ -288,14 +304,23 @@
               "$ref": "#/definitions/DefaultResponse"
             }
           },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
           "401": {
             "description": "Anauthorized"
           },
           "404": {
-            "description": "Desired user not found"
+            "description": "Desired user/product not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
           },
           "default": {
-            "description": "Could not find product in wishlist or it is already reserved",
+            "description": "This gift is already reserved",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -344,14 +369,23 @@
               "$ref": "#/definitions/DefaultResponse"
             }
           },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
           "401": {
             "description": "Anauthorized"
           },
           "404": {
-            "description": "Desired user not found"
+            "description": "Desired user/product not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
           },
           "default": {
-            "description": "Could not find product in wishlist or it is already un-reserved",
+            "description": "This gift is not reserved by current user",
             "schema": {
               "$ref": "#/definitions/ErrorResponse"
             }
@@ -553,8 +587,13 @@
         "type": {
           "type": "string"
         },
-        "data": {
+        "source": {
+          "description": "Which parameter caused an error",
           "type": "string"
+        },
+        "info": {
+          "type": "string",
+          "description": "Error description"
         }
       }
     },
