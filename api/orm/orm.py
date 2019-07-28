@@ -7,6 +7,8 @@ import asyncpg
 # 3) Filter > < >= <= conditionals
 # 4) __aiter__, __anext__
 # 5) __slots__
+# 6) DELETE ... RETURNING
+# 7) _is_valid check before performing actions with the objects
 
 
 class _QueryVariableGenerator:
@@ -205,6 +207,9 @@ class QuerySet:
 
         return models
 
+    async def get_one(self):
+        return (await self.get())[0]
+
     # async def __aiter__(self):
     #     models = await self.get()
     #     for model in models:
@@ -285,6 +290,9 @@ class Manage:
 
     async def get(self):
         return await QuerySet(self._pool, self.model_cls).get()
+
+    async def get_one(self):
+        return await QuerySet(self._pool, self.model_cls).get_one()
 
     def filter(self, **kwargs):
         return QuerySet(self._pool, self.model_cls, **kwargs)
@@ -516,6 +524,10 @@ async def _orm_test():
     # user.name = '2'
     # user.save()
     # user.delete()
+
+    user = await User.objects.get_one()
+    # print(dir(user))
+    print(user.__dict__)
 
 
 if __name__ == '__main__':

@@ -12,11 +12,11 @@ class User(Model):
 
 class Product(Model):
     pid = IntPrimaryField(required=False)
-    ref = StringField()
-    img = StringField()
+    reference = StringField()
+    image = StringField()
     name = StringField()
-    ptype = StringField(required=False)
-    descr = StringField(required=False)
+    product_type = StringField(required=False)
+    description = StringField(required=False)
     price = IntField()
 
     class Meta:
