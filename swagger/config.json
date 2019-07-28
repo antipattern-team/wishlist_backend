@@ -244,8 +244,8 @@
         "tags": [
           "Wishlist info"
         ],
-        "summary": "Get current user`s wishlist",
-        "description": "Get list of products those current user`s added to their wishlist",
+        "summary": "Get specified user`s wishlist",
+        "description": "Get list of products those specified user`s added to their wishlist",
         "operationId": "user_wishlist",
         "parameters": [
           {
