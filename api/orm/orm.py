@@ -1,6 +1,11 @@
 import asyncio
 import asyncpg
 
+# usage notes
+# 1) If required == True, field expects not-None value
+# 2) If required == False, field can be None/Null and always will be inserted into table even if None/Null
+# 3) The previous rule has an exception in primary fields, cause they should have no default value and get it form db
+
 # todo
 # 1) Unique fields
 # 2) Orderby
@@ -9,6 +14,7 @@ import asyncpg
 # 5) __slots__
 # 6) DELETE ... RETURNING
 # 7) _is_valid check before performing actions with the objects
+# 8) Return object created using Model.objects.create()
 
 
 class _QueryVariableGenerator:
@@ -17,7 +23,9 @@ class _QueryVariableGenerator:
         self._variables = []
 
     def get_variable(self, variable):
-        if isinstance(variable, int):
+        if variable is None:
+            return 'null'
+        elif isinstance(variable, int):
             query = f'${self._counter}::integer'
         elif isinstance(variable, bool):
             query = f'${self._counter}::bool'
@@ -43,7 +51,7 @@ class Field:
     def validate(self, value):
         if value is None:
             if self.required:
-                if self.default:
+                if self.default is not None:
                     return self.default
                 else:
                     raise ValueError('missing value for required field')
@@ -69,11 +77,13 @@ class BoolField(Field):
 
 
 class Primary:
-    pass
+    def __init__(self):
+        super(Primary, self).__init__(required=False)
 
 
 class IntPrimaryField(Primary, IntField):
-    pass
+    def __init__(self):
+        super(IntPrimaryField, self).__init__()
 
 
 class ModelMeta(type):
@@ -210,11 +220,6 @@ class QuerySet:
     async def get_one(self):
         return (await self.get())[0]
 
-    # async def __aiter__(self):
-    #     models = await self.get()
-    #     for model in models:
-    #         yield model
-
     def __await__(self):
         return self.get().__await__()
 
@@ -275,8 +280,7 @@ class Manage:
         self.model_cls = None
 
     def __get__(self, instance, owner):
-        if self.model_cls is None:
-            self.model_cls = owner
+        self.model_cls = owner
         return self
 
     async def create(self, **kwargs):
@@ -326,7 +330,7 @@ class Model(metaclass=ModelMeta):
 
         self.__dict__['_is_valid'] = False
 
-    def is_valid(self) -> bool:
+    def is_valid(self):
         return self._is_valid
 
     def __bool__(self):
@@ -335,14 +339,10 @@ class Model(metaclass=ModelMeta):
     async def save(self):
         primary_field = self._primary
 
-        none_fields = []
-
         if getattr(self, primary_field) is not None:
+            get_primary = False
             query = f'INSERT INTO {self._table_name}('
             for k in self._fields:
-                if getattr(self, k) is None:
-                    none_fields.append(k)
-                    continue
                 query += f'{k},'
             query = query[:-1] + ') '
 
@@ -350,8 +350,6 @@ class Model(metaclass=ModelMeta):
 
             query += 'VALUES('
             for k in self._fields:
-                if getattr(self, k) is None:
-                    continue
                 v = getattr(self, k)
                 query += f'{gen.get_variable(v)},'
             query = query[:-1] + f')'
@@ -362,48 +360,33 @@ class Model(metaclass=ModelMeta):
                     continue
 
                 v = getattr(self, k)
-                if v is None:
-                    continue
 
                 query += f' {k} = {gen.get_variable(v)},'
-            query = query[:-1]
-
-            if len(none_fields) > 0:
-                query += ' RETURNING '
-                for field in none_fields:
-                    query += f'{field}, '
-                query = query[:-2]
-
-            query += ';'
+            query = query[:-1] + ';'
         else:
+            get_primary = True
             query = f'INSERT INTO {self._table_name}('
 
             gen = _QueryVariableGenerator()
 
             for k in self._fields:
-                if k == primary_field or getattr(self, k) is None:
-                    none_fields.append(k)
+                if k == primary_field:
                     continue
                 query += f'{k},'
             query = query[:-1] + ') '
 
             query += 'VALUES('
             for k in self._fields:
-                if k == primary_field or getattr(self, k) is None:
+                if k == primary_field:
                     continue
                 v = getattr(self, k)
                 query += f'{gen.get_variable(v)},'
-            query = query[:-1] + ') RETURNING '
-
-            for field in none_fields:
-                query += f'{field}, '
-            query = query[:-2] + ';'
+            query = query[:-1] + f') RETURNING {primary_field};'
 
         async with self.objects._pool.acquire() as conn:
-            if len(none_fields) > 0:
+            if get_primary:
                 res = (await conn.fetch(query, *gen.variables))[0]
-                for field in none_fields:
-                    setattr(self, field, res[field])
+                setattr(self, primary_field, res[primary_field])
             else:
                 await conn.execute(query, *gen.variables)
 
