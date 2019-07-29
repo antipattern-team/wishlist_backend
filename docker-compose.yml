@@ -54,7 +54,7 @@ services:
       ESHOST: 'elastic'
       PGHOST: 'postgres'
       RMQHOST: 'rabbitmq'
-      AUTHKEY: '123'
+      AUTHKEY: 'e5Grab2bwfcL6NWjTgEB'
 #     Provide this variable with the .env file
       POSTGRES_USER: 'server'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -73,7 +73,7 @@ services:
   auth:
     environment:
       RMQHOST: 'rabbitmq'
-      AUTHKEY: '123'
+      AUTHKEY: 'e5Grab2bwfcL6NWjTgEB'
     build:
       context: './auth_server'
       dockerfile: './Dockerfile'

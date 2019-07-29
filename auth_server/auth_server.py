@@ -8,7 +8,7 @@ import time
 
 async def auth(msg):  # main authentication
     encoded_token = jwt.encode({'uid': msg}, auth_key, algorithm='HS256')
-    print(f" [.] got({jwt.decode(encoded_token, '123', algorithms=['HS256'])})")
+    print(f" [.] got({jwt.decode(encoded_token, auth_key, algorithms=['HS256'])})")
     await asyncio.sleep(0.05)
     return encoded_token
 
