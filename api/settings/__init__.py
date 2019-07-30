@@ -31,3 +31,7 @@ if 'RMQHOST' in os.environ:
 auth_key = '123'
 if 'AUTHKEY' in os.environ:
     auth_key = os.environ['AUTHKEY']
+
+app_secret = '123'
+if 'APPSECRET' in os.environ:
+    app_secret = os.environ['APPSECRET']

@@ -1,12 +1,8 @@
 from aiohttp import web
 from models import *
 import jwt
-from settings import auth_key
-import requests
-
-# todo(Usatiynyan):
-#  edge case error 6 and error !6
-#  only 5 requests per second!
+from settings import auth_key, app_secret
+from vkutils import *
 
 
 def auth_mw(handler):
@@ -25,12 +21,20 @@ def auth_mw(handler):
         if jwt_present:
             uid = decoded_token.get("uid")
         else:
-            # The needed token is already obtained from frontend request
-            vktoken = request.query.get("vktoken")
-            if vktoken is None:
+            # The needed info is already obtained from frontend request
+            # All we need is to check sign validity
+            vksign = request.query.get("sign")
+            if vksign is None:
                 return unauthorized_response()
 
-            uid = await add_user(vktoken)
+            vkquery = dict(request.query)
+            if not vk_validation(query=vkquery, secret=app_secret):
+                return unauthorized_response()
+
+            try:
+                uid = await add_user(request)
+            except ErrorUnauthorized:
+                return unauthorized_response()
 
             jwt_token = await request.app.auth_connection.call(uid)
 
@@ -43,53 +47,3 @@ def auth_mw(handler):
         return response
 
     return func
-
-
-async def add_user(vktoken):
-    user_response = requests.get('https://api.vk.com/method/users.get',
-                                 params={
-                                     'fields': 'photo_200_orig',
-                                     'v': '5.101',
-                                     'access_token': vktoken}).json()
-
-    try:
-        vkid = user_response['response'][0]['id']
-    except (TypeError, KeyError):
-        return unauthorized_response()
-
-    try:
-        user = (await User.objects.filter(vkid=vkid).get())[0]
-    except User.DoesNotExist:
-        user = User(vkid=vkid)
-        await user.save()
-
-    friends_response = requests.get('https://api.vk.com/method/friends.get',
-                                    params={
-                                        'fields': 'photo_200_orig',
-                                        'v': '5.101',
-                                        'access_token': vktoken}).json()
-
-    try:
-        friends_vk = friends_response['response']['items']
-    except (TypeError, KeyError):  # what if you have no friends?
-        return unauthorized_response()
-
-    for friend_vk in friends_vk:
-        try:
-            friend_id = friend_vk.get('id')
-            if friend_id is None:
-                continue
-            friend = (await User.objects.filter(vkid=friend_id).get())[0]
-        except User.DoesNotExist:
-            continue
-
-        await Friend.objects.create(uid=user.uid, fid=friend.uid)
-        await Friend.objects.create(uid=friend.uid, fid=user.uid)
-
-    return user.uid
-
-
-def unauthorized_response():
-    resp = web.Response()
-    resp.set_status(status=401)
-    return resp
