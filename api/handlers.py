@@ -1,9 +1,12 @@
 from aiohttp import web
+import jwt
 from middleware import auth_mw
 from models import *
+from settings import app_secret
+from vkutils import *
 
 
-async def get_products_popular(request):
+async def get_products_popular(request: web.Request):
     resp = list()
     # try:
     #   data = await ORM.get_all_products()
@@ -32,7 +35,7 @@ async def get_products_popular(request):
 
 
 @auth_mw
-async def get_friends(request, context):
+async def get_friends(request: web.Request, context):
     resp = list()
     uid = request.cookies.get('id')
     # try:
@@ -58,7 +61,7 @@ async def get_friends(request, context):
 
 
 @auth_mw
-async def get_friends_search(request, context):
+async def get_friends_search(request: web.Request, context):
     resp = list()
     uid = request.cookies.get('id')
     keyword = request.query.get('query')
@@ -87,7 +90,7 @@ async def get_friends_search(request, context):
 
 
 @auth_mw
-async def get_gifts(request, context):
+async def get_gifts(request: web.Request, context):
     resp = list()
     gid = request.cookies.get('id')
     # try:
@@ -123,7 +126,7 @@ async def get_gifts(request, context):
 
 
 @auth_mw
-async def get_wishlist(request, context):
+async def get_wishlist(request: web.Request, context):
     resp = list()
     uid = request.cookies.get('id')
     keyword = request.query.get('query')  # 'reserved=-1', 'unreserved=1', 'all=0'
@@ -154,7 +157,7 @@ async def get_wishlist(request, context):
 
 
 @auth_mw
-async def add_to_wishlist(request, context):
+async def add_to_wishlist(request: web.Request, context):
     uid = request.cookies['id']
     pid = request.query.get('query')
     # data = await ORM.add_product(uid, pid)
@@ -172,7 +175,7 @@ async def add_to_wishlist(request, context):
 
 
 @auth_mw
-async def delete_from_wishlist(request, context):
+async def delete_from_wishlist(request: web.Request, context):
     uid = request.cookies['id']
     pid = request.query.get('query')
     # data = await ORM.delete_product(uid, pid)
@@ -190,7 +193,7 @@ async def delete_from_wishlist(request, context):
 
 
 @auth_mw
-async def get_user_wishlist(request, context):
+async def get_user_wishlist(request: web.Request, context):
     resp = list()
     uid = request.query.get('query')
     # try:
@@ -220,7 +223,7 @@ async def get_user_wishlist(request, context):
 
 
 @auth_mw
-async def reserve_gift_for_user(request, context):
+async def reserve_gift_for_user(request: web.Request, context):
     uid = request.query.get('query')
     # data = await ORM.add_gift(uid, pid)
     # if data is None:
@@ -237,7 +240,7 @@ async def reserve_gift_for_user(request, context):
 
 
 @auth_mw
-async def cancel_gift_for_user(request, context):
+async def cancel_gift_for_user(request: web.Request, context):
     uid = request.query.get('query')
     # data = await ORM.delete_gift(uid, pid)
     # if data is None:
@@ -251,3 +254,30 @@ async def cancel_gift_for_user(request, context):
     }
     
     return web.json_response(resp)
+
+
+async def login(request: web.Request):
+    # The needed info is already obtained from frontend request
+    # All we need is to check sign validity
+    vksign = request.query.get("sign")
+    if vksign is None:
+        return unauthorized_response()
+
+    vkquery = request.query
+    if not vk_validation(query=vkquery, secret=app_secret):
+        return unauthorized_response()
+
+    try:
+        uid = await add_user(request)
+    except ErrorUnauthorized:
+        return unauthorized_response()
+
+    jwt_token = await request.app.auth_connection.call(uid)
+    resp = {
+        'result': 'success',
+        'type': 'login'
+    }
+
+    response = web.json_response(resp)
+    response.set_cookie(name="jwt_token", value=jwt_token)
+    return response

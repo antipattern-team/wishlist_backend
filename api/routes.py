@@ -12,4 +12,5 @@ routes = [
     ('GET',    '/wishlist/{uid}',   get_user_wishlist,       'user_wishlist'),
     ('POST',   '/wishlist/{uid}',   reserve_gift_for_user,   'user_gift_add'),
     ('DELETE', '/wishlist/{uid}',   cancel_gift_for_user,    'user_gift_remove'),
+    ('POST',   '/login',            login,                   'login')
 ]

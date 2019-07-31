@@ -1,7 +1,5 @@
-from aiohttp import web
-from models import *
 import jwt
-from settings import auth_key, app_secret
+from settings import auth_key
 from vkutils import *
 
 
@@ -21,28 +19,10 @@ def auth_mw(handler):
         if jwt_present:
             uid = decoded_token.get("uid")
         else:
-            # The needed info is already obtained from frontend request
-            # All we need is to check sign validity
-            vksign = request.query.get("sign")
-            if vksign is None:
-                return unauthorized_response()
-
-            vkquery = dict(request.query)
-            if not vk_validation(query=vkquery, secret=app_secret):
-                return unauthorized_response()
-
-            try:
-                uid = await add_user(request)
-            except ErrorUnauthorized:
-                return unauthorized_response()
-
-            jwt_token = await request.app.auth_connection.call(uid)
+            return unauthorized_response()
 
         context = {'uid': uid}
-        response: web.Response = await handler(request, context)
-
-        if not jwt_present:
-            response.set_cookie(name="jwt_token", value=jwt_token)
+        response = await handler(request, context)
 
         return response
 

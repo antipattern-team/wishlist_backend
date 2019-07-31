@@ -57,6 +57,7 @@ async def add_user(request: web.Request):
 
     for existing_friend_vk in existing_friends_vk:
         if existing_friend_vk not in friends_vk:
+            # breaking a bond
             await Friend.objects.filter(uid=user.uid, fid=existing_friends[existing_friend_vk]).delete()
             await Friend.objects.filter(uid=existing_friends[existing_friend_vk], fid=user.uid).delete()
 
@@ -70,7 +71,6 @@ async def add_user(request: web.Request):
             # creating a bond
             await Friend.objects.create(uid=user.uid, fid=friend.uid)
             await Friend.objects.create(uid=friend.uid, fid=user.uid)
-            #
 
     return user.uid
 
