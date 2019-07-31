@@ -1,27 +1,30 @@
 from aiohttp import web
 from middleware import auth_mw
 from models import *
+from elastic import Elastic
 
 
-# todo elastic
 async def get_products_search(request):
     resp = list()
     product_name = request.match_info['name']
-
-    resp.append(
-        {
-            'ref': 'url',  # data[i].ref
-            'img': 'img_url',  # data[i].img
-            'name': 'name',  # data[i].name
-            'type': 'type',  # data[i].type
-            'descr': 'description',  # data[i].descr
-            'price': 1337,  # data[i].price
-        }
-    )
+    products = await Elastic.find_prefix(coll=Elastic.es_coll, param='name', value=product_name)
+    for product in products:
+        obj = {
+                'pid': product['pid'],
+                'reference': product['reference'],
+                'image': product['image'],
+                'name': product['name'],
+                'price': product['price']
+            }
+        if 'product_type' in product:
+            obj['product_type'] = product['product_type']
+        if 'description' in product:
+            obj['description'] = product['description']
+        resp.append(obj)
 
     resp = {
         'result': 'success',
-        'type': 'popular',
+        'type': 'products_search',
         'data': resp
     }
 
@@ -45,8 +48,6 @@ async def get_products_popular(request):
                 'reference': product.reference,
                 'image': product.image,
                 'name': product.name,
-                'product_type': product.product_type,
-                'description': product.description,
                 'price': product.price
             })
 
@@ -79,25 +80,20 @@ async def get_friends(request, context):
     
     return web.json_response(resp)
 
-# todo elastic
+
 @auth_mw
 async def get_friends_search(request, context):
     resp = list()
     friend_name = request.match_info['name']
     uid = context['uid']
 
-    # try:
-    #   data = await ORM.get_friends_search(uid, keyword)
-    #   for _ in data:
-    #       resp.append(_)
-    # except:
-    #   resp.append('you have no friends')
-    resp.append(
-        {
-            'friend_img': 'some_url',  # data[i].img
-            'friend_name': 'anonymous',  # data[i].name
-        }
-    )
+    friends = await Elastic.find_like(coll='friends', param='name', value='friend_name', term={'fid': uid})
+    for friend in friends:
+        resp.append(
+            {
+                'vkid': friend['vkid']
+            }
+        )
 
     resp = {
         'result': 'success',

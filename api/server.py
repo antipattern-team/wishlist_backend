@@ -1,9 +1,9 @@
 import time
 from aiohttp import web
-import aiohttp_cors
 from routes import routes
 from models import *
 from utils import get_env
+from elastic import Elastic
 
 if __name__ == '__main__':
     debug = get_env('DEBUG', False)
@@ -24,6 +24,8 @@ if __name__ == '__main__':
         print('Slept')
 
     async def on_startup(app):
+        Elastic.init(es_host, es_coll)
+
         await Manage.init_conn(user=pg_user, password=pg_password,
                                database=pg_database, host=pg_host)
 
@@ -52,17 +54,5 @@ if __name__ == '__main__':
 
     for method, route, handler, name in routes:
         app.router.add_route(method, route, handler, name=name)
-
-    # cors = aiohttp_cors.setup(app, defaults={
-    #     "*": aiohttp_cors.ResourceOptions(
-    #         allow_credentials=True,
-    #         expose_headers="*",
-    #         allow_headers="*",
-    #         allow_methods=['GET', 'POST', 'DELETE']
-    #     )
-    # })
-
-    # for route in list(app.router.routes()):
-    #     cors.add(route)
 
     web.run_app(app, host='0.0.0.0', port=8080)
