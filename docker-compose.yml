@@ -14,6 +14,7 @@ services:
   crawler:
     environment:
       ESHOST: 'elastic'
+      ESCOLL: 'products'
       PGHOST: 'postgres'
 #     Provide this variable with the .env file
       POSTGRES_USER: 'server'
@@ -41,6 +42,7 @@ services:
   api:
     environment:
       ESHOST: 'elastic'
+      ESCOLL: 'products'
       PGHOST: 'postgres'
 #     Provide this variable with the .env file
       POSTGRES_USER: 'server'

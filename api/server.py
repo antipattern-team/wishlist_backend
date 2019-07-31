@@ -1,38 +1,21 @@
-import os
 import time
 from aiohttp import web
 import aiohttp_cors
 from routes import routes
 from models import *
+from utils import get_env
 
 if __name__ == '__main__':
-    debug = False
-    if 'DEBUG' in os.environ:
-        debug = bool(os.environ['DEBUG'])
+    debug = get_env('DEBUG', False)
+    sleep = get_env('SLEEP', False)
 
-    sleep = False
-    if 'SLEEP' in os.environ:
-        sleep = bool(os.environ['SLEEP'])
+    es_host = get_env('ESHOST', 'localhost')
+    es_coll = get_env('ESCOLL', 'products')
 
-    es_host = 'localhost'
-    if 'ESHOST' in os.environ:
-        es_host = os.environ['ESHOST']
-
-    pg_host = 'localhost'
-    if 'PGHOST' in os.environ:
-        pg_host = os.environ['PGHOST']
-
-    pg_database = 'wishlist'
-    if 'POSTGRES_DB' in os.environ:
-        pg_database = os.environ['POSTGRES_DB']
-
-    pg_password = ''
-    if 'POSTGRES_PASSWORD' in os.environ:
-        pg_password = os.environ['POSTGRES_PASSWORD']
-
-    pg_user = 'postgres'
-    if 'POSTGRES_USER' in os.environ:
-        pg_user = os.environ['POSTGRES_USER']
+    pg_host = get_env('PGHOST', 'localhost')
+    pg_database = get_env('POSTGRES_DB', 'wishlist')
+    pg_password = get_env('POSTGRES_PASSWORD', '')
+    pg_user = get_env('POSTGRES_USER', 'postgres')
 
     if sleep:
         secs = 65
