@@ -64,9 +64,13 @@ async def get_products_popular(request):
 async def get_friends(request, context):
     resp = list()
     uid = context['uid']
+    try:
+        friends = await Friend.objects.filter(uid=uid)
+    except Friend.DoesNotExist:
+        friends = []
 
-    for friend_id in await Friend.objects.filter(uid=uid):
-        user = await User.objects.filter(uid=friend_id).get_one()
+    for friend in friends:
+        user = await User.objects.filter(uid=friend.fid).get_one()
         if user.wishes > 0:  # todo remove this when proper conditions implemented
             resp.append({
                 'vkid': user.vkid
@@ -87,7 +91,7 @@ async def get_friends_search(request, context):
     friend_name = request.match_info['name']
     uid = context['uid']
 
-    friends = await Elastic.find_like(coll='friends', param='name', value='friend_name', term={'fid': uid})
+    friends = await Elastic.find_like(coll='friends', param='name', value=friend_name, term={'fid': uid})
     for friend in friends:
         resp.append(
             {

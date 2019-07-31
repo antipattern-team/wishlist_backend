@@ -11,7 +11,7 @@ class Elastic:
         cls.es_coll = es_coll
 
     @classmethod
-    async def save(cls, obj: dict, coll: str, id: int) -> None:
+    async def save(cls, obj: dict, coll: str, id: int):
         await cls._conn.index(index=coll, id=id, body=obj)
 
     @classmethod
@@ -27,16 +27,19 @@ class Elastic:
     @classmethod
     async def _search(cls, coll: str, query: dict, term: dict = None):
         if term:
-            return await cls._conn.search(index=coll, body={'query': query, 'term': term, 'size': 100})
+            objects = (await cls._conn.search(index=coll, body={'query': query, 'size': 100}))['hits']['hits']
+            objects = cls._process(objects)
+            for t in term:
+                objects = [o for o in objects if o[t] == term[t]]
+            return objects
         else:
-            return await cls._conn.search(index=coll, body={'query': query, 'size': 100})
+            objects = (await cls._conn.search(index=coll, body={'query': query, 'size': 100}))['hits']['hits']
+            return cls._process(objects)
 
     @classmethod
     async def find_prefix(cls, coll: str, param: str, value: str, term: dict = None):
-        unprocessed = (await cls._search(coll=coll, query={'prefix': {param: value}}, term=term))['hits']['hits']
-        return cls._process(unprocessed)
+        return await cls._search(coll=coll, query={'prefix': {param: value}}, term=term)
 
     @classmethod
     async def find_like(cls, coll: str, param: str, value: str, term: dict = None):
-        unprocessed = (await cls._search(coll=coll, query={'match_phrase': {param: value}}, term=term))['hits']['hits']
-        return cls._process(unprocessed)
+        return await cls._search(coll=coll, query={'match_phrase': {param: value}}, term=term)

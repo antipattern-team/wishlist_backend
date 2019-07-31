@@ -37,10 +37,19 @@ if __name__ == '__main__':
                 pass
 
             try:
+                await Elastic.save(coll='friends', obj={'name': 'generic test user', 'fid': 90001, 'vkid': 'generic_test_user'}, id=90000)
+                await Elastic.save(coll='friends', obj={'name': 'generic test user 1', 'fid': 90000, 'vkid': 'generic_test_user1'}, id=90001)
+
+                await Friend.objects.create(uid=90000, fid=90001)
+                await Friend.objects.create(uid=90001, fid=90000)
+
+            except Friend.UniqueViolation:
+                pass
+
+            try:
                 await Product.objects.create(pid=90000, name='generic_test_product',
                                              reference='generic_test_reference',
                                              image='generic_test_image', price=1000)
-
             except Product.UniqueViolation:
                 pass
 
