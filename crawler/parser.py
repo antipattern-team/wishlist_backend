@@ -41,7 +41,7 @@ class IKEAParser(Parser):
             tp = tp.split('\n')
             tp = [el.strip() for el in tp if el.strip() is not '']
             tp = ' '.join(tp)
-            product['type'] = tp
+            product['product_type'] = tp
 
             desc = node.css_first(self._s_desc)
             if desc:

@@ -2,7 +2,7 @@ import asyncio
 import uuid
 from aio_pika import connect, IncomingMessage, Message
 import jwt
-from settings import auth_key
+from utils import get_env
 
 
 class AuthRpcClient:
@@ -30,7 +30,8 @@ class AuthRpcClient:
         future = self.futures.pop(message.correlation_id)
         future.set_result(message.body)
 
-    async def call(self, n):
+    async def call(self, msg, method):
+        msg = str(msg) + '.' + method
         correlation_id = str(uuid.uuid4())
         future = asyncio.get_running_loop().create_future()
 
@@ -38,7 +39,7 @@ class AuthRpcClient:
 
         await self.channel.default_exchange.publish(
             Message(
-                str(n).encode(),
+                str(msg).encode(),
                 content_type='text/plain',
                 correlation_id=correlation_id,
                 reply_to=self.callback_queue.name,
@@ -54,12 +55,13 @@ class AuthRpcClient:
 
 
 async def _test():
+    auth_key = get_env('AUTHKEY', '123')
     auth_rpc = await AuthRpcClient().connect(
         host="localhost",
     )
     uid = "1234564546454"
     print(f" [x] Requesting auth {uid}")
-    response_str = await auth_rpc.call(uid)
+    response_str = await auth_rpc.call(uid, "encode")
     token = jwt.decode(response_str, auth_key, algorithms=['HS256'])
     print(f" [.] Got {token}")
 

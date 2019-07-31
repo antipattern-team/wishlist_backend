@@ -6,11 +6,21 @@ from settings import *
 import time
 
 
-async def auth(msg):  # main authentication
+async def encode(msg):  # main authentication
     encoded_token = jwt.encode({'uid': msg}, auth_key, algorithm='HS256')
     print(f" [.] got({jwt.decode(encoded_token, auth_key, algorithms=['HS256'])})")
     await asyncio.sleep(0.05)
     return encoded_token
+
+
+async def decode(msg):
+    try:
+        decoded_token = jwt.decode(msg, auth_key, algorithms=['HS256'])
+        print(f" [.] got({decoded_token})")
+        await asyncio.sleep(0.05)
+    except jwt.exceptions.PyJWTError:
+        decoded_token = ""
+    return decoded_token
 
 
 async def on_message(exchange: Exchange, message: IncomingMessage):
@@ -18,7 +28,14 @@ async def on_message(exchange: Exchange, message: IncomingMessage):
 
         msg = message.body.decode()
 
-        response = str(await auth(msg))
+        msg, method = msg.split(sep='.')
+
+        if method == 'encode':
+            response = str(await encode(msg))
+        elif method == 'decode':
+            response = str(await decode(msg))
+        else:
+            response = ""
 
         await exchange.publish(
             Message(

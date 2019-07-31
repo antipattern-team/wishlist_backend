@@ -1,6 +1,5 @@
 import asyncio
 import aiohttp
-import os
 import time
 
 from utils import Counter, IdleCounter
@@ -10,10 +9,9 @@ from db import DB, db_factory
 
 
 class Crawler:
-    def __init__(self, name: str, root: str, parser: Parser, fps: int,
-                 pg_db: DB, es_db: DB, pg_host: str, es_host: str, pg_db_name, pg_db_user, pg_db_pass,
+    def __init__(self, root: str, parser: Parser, fps: int,
+                 pg_db: DB, es_db: DB, pg_host: str, es_host: str, es_coll, pg_db_name, pg_db_user, pg_db_pass,
                  debug: bool, filename: str = 'db.txt'):
-        self._name: str = name
         self._root: str = root
         self._parser: Parser = parser
         self._fps: int = fps
@@ -21,6 +19,7 @@ class Crawler:
         self._es_db: DB = es_db
         self._pg_host: str = pg_host
         self._es_host: str = es_host
+        self._es_coll: str = es_coll
         self._pg_db_name: str = pg_db_name
         self._pg_db_user: str = pg_db_user
         self._pg_db_pass: str = pg_db_pass
@@ -66,91 +65,34 @@ class Crawler:
             reseter(counter),
             idler(idle_counter),
 
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
-            fetcher(to_fetchers, to_middleware, to_saver, self._parser),
+            *[fetcher(to_fetchers, to_middleware, to_saver, self._parser)
+              for _ in range(20)],
 
-            saver([self._es_db, self._pg_db], self._name, to_saver, idx_counter, True),
-            saver([self._es_db, self._pg_db], self._name, to_saver, idx_counter, True),
-            saver([self._es_db, self._pg_db], self._name, to_saver, idx_counter, True),
-            saver([self._es_db, self._pg_db], self._name, to_saver, idx_counter, True),
+            *[saver([self._es_db, self._pg_db], self._es_coll, to_saver, idx_counter, True)
+              for _ in range(4)]
         ]
 
         await asyncio.gather(*coros)
 
 
-def main():
-    name = 'products'
+if __name__ == '__main__':
     root = 'https://m2.ikea.com/ru/ru/cat/tovary-functional/'
     parser = parser_factory('IKEA')
     es = db_factory('Elasticsearch')
     pg = db_factory('Postgres')
 
-    es_host = 'localhost'
-    if 'ESHOST' in os.environ:
-        es_host = os.environ['ESHOST']
+    sleep = get_env('SLEEP', False)
+    fps = get_env('FPS', 10)
+    debug = get_env('DEBUG', True)
+    filename = get_env('DFILE', 'db.txt')
 
-    pg_host = 'localhost'
-    if 'PGHOST' in os.environ:
-        pg_host = os.environ['PGHOST']
+    es_host = get_env('ESHOST', 'localhost')
+    es_coll = get_env('ESCOLL', 'products')
 
-    pg_database = 'wishlist'
-    if 'POSTGRES_DB' in os.environ:
-        pg_database = os.environ['POSTGRES_DB']
-
-    pg_password = ''
-    if 'POSTGRES_PASSWORD' in os.environ:
-        pg_password = os.environ['POSTGRES_PASSWORD']
-
-    pg_user = 'postgres'
-    if 'POSTGRES_USER' in os.environ:
-        pg_user = os.environ['POSTGRES_USER']
-
-    fps = 10
-    if 'FPS' in os.environ:
-        fps = int(os.environ['FPS'])
-
-    debug = True
-    if 'DEBUG' in os.environ:
-        debug = bool(os.environ['DEBUG'])
-
-    filename = 'db.txt'
-    if 'DFILE' in os.environ:
-        filename = bool(os.environ['DFILE'])
-
-    crawler = Crawler(name=name, root=root, parser=parser, fps=fps,
-                      es_db=es, pg_db=pg, es_host=es_host, pg_host=pg_host,
-                      pg_db_name=pg_database, pg_db_user=pg_user, pg_db_pass=pg_password,
-                      debug=debug, filename=filename)
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(crawler.run())
-
-
-if __name__ == '__main__':
-
-    sleep = False
-    try:
-        sleep = os.environ['SLEEP']
-    except KeyError:
-        pass
+    pg_host = get_env('PGHOST', 'localhost')
+    pg_database = get_env('POSTGRES_DB', 'wishlist')
+    pg_password = get_env('POSTGRES_PASSWORD', '')
+    pg_user = get_env('POSTGRES_USER', 'postgres')
 
     if sleep:
         secs = 60
@@ -158,4 +100,11 @@ if __name__ == '__main__':
         time.sleep(secs)
         print('Slept')
 
-    main()
+    crawler = Crawler(root=root, parser=parser, fps=fps,
+                      es_db=es, pg_db=pg, es_host=es_host, pg_host=pg_host,
+                      es_coll=es_coll, pg_db_name=pg_database, pg_db_user=pg_user, pg_db_pass=pg_password,
+                      debug=debug, filename=filename)
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(crawler.run())
+

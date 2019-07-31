@@ -1,0 +1,669 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "This is api-description of the most impressive and popular vk app wishlist.kpacubo.xyz",
+    "version": "0.2.0",
+    "title": "KPACUBOE API"
+  },
+  "host": "wishlist.kpacubo.xyz",
+  "basePath": "/",
+  "tags": [
+    {
+      "name": "Products",
+      "description": "Getting products info"
+    },
+    {
+      "name": "Wishlist info",
+      "description": "Getting information about a wishlist"
+    },
+    {
+      "name": "Wishlist manipulation",
+      "description": "Change your wishlist's contents"
+    },
+    {
+      "name": "Gifts",
+      "description": "Gifts info and manipulation"
+    },
+    {
+      "name": "Friends",
+      "description": "Getting information about friends"
+    }
+  ],
+  "schemes": [
+    "http"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "securityDefinitions": {
+    "sessionCookie": {
+      "type": "apiKey",
+      "name": "sid",
+      "in": "header"
+    }
+  },
+  "paths": {
+    "/products/search/{name}": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get products by name",
+        "description": "Get product list by product name",
+        "operationId": "products_search",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Product name to search for",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Product list",
+            "schema": {
+              "$ref": "#/definitions/ProductResponse"
+            }
+          }
+        }
+      }
+    },
+    "/products/popular": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get popular products",
+        "description": "Get products most added to users` wishlists",
+        "operationId": "products_popular",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Product list",
+            "schema": {
+              "$ref": "#/definitions/ProductResponse"
+            }
+          }
+        }
+      }
+    },
+    "/wishlist": {
+      "get": {
+        "tags": [
+          "Wishlist info"
+        ],
+        "summary": "Get current user`s wishlist",
+        "description": "Get list of products those current user`s added to their wishlist",
+        "operationId": "wishlist",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Wishlist",
+            "schema": {
+              "$ref": "#/definitions/ReservedProductResponse"
+            }
+          },
+          "401": {
+            "description": "Anauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Wishlist manipulation"
+        ],
+        "summary": "Add product to current user`s wishlist",
+        "operationId": "wishlist_add",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Desired product`s id",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProductRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wishlist",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Anauthorized"
+          },
+          "404": {
+            "description": "Desired product not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict, such product is already added to current user's wishlist",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Wishlist manipulation"
+        ],
+        "summary": "Remove product from current user`s wishlist",
+        "operationId": "wishlist_remove",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Desired product`s id",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProductRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wishlist",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Anauthorized"
+          },
+          "404": {
+            "description": "Desired product not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict, such product isn`t added to current user's wishlist",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/wishlist/{vkid}": {
+      "get": {
+        "tags": [
+          "Wishlist info"
+        ],
+        "summary": "Get specified user`s wishlist",
+        "description": "Get list of products those specified user`s added to their wishlist",
+        "operationId": "user_wishlist",
+        "parameters": [
+          {
+            "name": "vkid",
+            "in": "path",
+            "description": "VK id of user",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Wishlist",
+            "schema": {
+              "$ref": "#/definitions/ReservedProductResponse"
+            }
+          },
+          "404": {
+            "description": "Desired user not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Gifts"
+        ],
+        "summary": "Reserve gift for specific user",
+        "operationId": "user_wishlist_add",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "vkid",
+            "in": "path",
+            "description": "VK id of user",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Desired product`s id",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProductRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wishlist",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Anauthorized"
+          },
+          "404": {
+            "description": "Desired user/product/gift not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict, this gift is already reserved",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Gifts"
+        ],
+        "summary": "Un-reserve gift for specific user",
+        "operationId": "user_wishlist_remove",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "vkid",
+            "in": "path",
+            "description": "VK id of user",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Desired product`s id",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProductRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wishlist",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Anauthorized"
+          },
+          "404": {
+            "description": "Desired user/product/gift not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "409": {
+            "description": "Conflict, this gift is not reserved by current user",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/gifts": {
+      "get": {
+        "tags": [
+          "Gifts"
+        ],
+        "summary": "Get current user`s gift list",
+        "description": "Get list of products current user reserved for other users",
+        "operationId": "gifts",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Gift list",
+            "schema": {
+              "$ref": "#/definitions/GiftResponse"
+            }
+          },
+          "401": {
+            "description": "Anauthorized"
+          }
+        }
+      }
+    },
+    "/friends": {
+      "get": {
+        "tags": [
+          "Friends"
+        ],
+        "summary": "Get current user`s list of friends",
+        "description": "Get current user`s list of friends with not empty wishlists",
+        "operationId": "friends",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Friend list",
+            "schema": {
+              "$ref": "#/definitions/UserResponse"
+            }
+          },
+          "401": {
+            "description": "Anauthorized"
+          }
+        }
+      }
+    },
+    "/friends/{name}": {
+      "get": {
+        "tags": [
+          "Friends"
+        ],
+        "summary": "Search current user`s specific friends",
+        "description": "Get current user\\`s list of friends with not empty wishlists by friend\\`s name",
+        "operationId": "friends_search",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Name of user",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Friend list",
+            "schema": {
+              "$ref": "#/definitions/UserResponse"
+            }
+          },
+          "401": {
+            "description": "Anauthorized"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ProductRequest": {
+      "type": "object",
+      "properties": {
+        "pid": {
+          "type": "integer"
+        }
+      }
+    },
+    "DefaultResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "ProductResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Product"
+          }
+        }
+      }
+    },
+    "ReservedProductResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReservedProduct"
+          }
+        }
+      }
+    },
+    "GiftResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Gift"
+          }
+        }
+      }
+    },
+    "UserResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          }
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "source": {
+          "description": "Which parameter caused an error",
+          "type": "string"
+        },
+        "info": {
+          "type": "string",
+          "description": "Error description"
+        }
+      }
+    },
+    "Product": {
+      "type": "object",
+      "properties": {
+        "pid": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "product": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "price": {
+          "type": "integer"
+        }
+      }
+    },
+    "ReservedProduct": {
+      "type": "object",
+      "properties": {
+        "product": {
+          "$ref": "#/definitions/Product"
+        },
+        "reserved": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Gift": {
+      "type": "object",
+      "properties": {
+        "product": {
+          "$ref": "#/definitions/Product"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      }
+    },
+    "User": {
+      "type": "object",
+      "properties": {
+        "vkid": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

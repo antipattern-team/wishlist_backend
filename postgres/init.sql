@@ -13,7 +13,7 @@ create table if not exists products (
     reference text not null,
     image text not null,
     name text not null,
-    type text,
+    product_type text,
     description text,
     price integer not null
 );

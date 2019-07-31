@@ -10,6 +10,8 @@ cchardet==2.1.4
 certifi==2019.6.16
 cffi==1.12.3
 chardet==3.0.4
+elasticsearch==7.0.2
+elasticsearch-async==6.2.0
 idna==2.8
 multidict==4.5.2
 pamqp==2.3.0

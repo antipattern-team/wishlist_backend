@@ -1,12 +1,19 @@
 import asyncio
 import asyncpg
 
+# usage notes
+# 1) If required == True, field expects not-None value
+# 2) If required == False, field can be None/Null and always will be inserted into table even if None/Null
+# 3) The previous rule has an exception in primary fields, cause they should have no default value and get it form db
+
 # todo
 # 1) Unique fields
 # 2) Orderby
 # 3) Filter > < >= <= conditionals
 # 4) __aiter__, __anext__
 # 5) __slots__
+# 6) _is_valid check before performing actions with the objects
+# 7) Return object created using Model.objects.create()
 
 
 class _QueryVariableGenerator:
@@ -15,7 +22,9 @@ class _QueryVariableGenerator:
         self._variables = []
 
     def get_variable(self, variable):
-        if isinstance(variable, int):
+        if variable is None:
+            return 'null'
+        elif isinstance(variable, int):
             query = f'${self._counter}::integer'
         elif isinstance(variable, bool):
             query = f'${self._counter}::bool'
@@ -41,7 +50,7 @@ class Field:
     def validate(self, value):
         if value is None:
             if self.required:
-                if self.default:
+                if self.default is not None:
                     return self.default
                 else:
                     raise ValueError('missing value for required field')
@@ -67,11 +76,13 @@ class BoolField(Field):
 
 
 class Primary:
-    pass
+    def __init__(self):
+        super(Primary, self).__init__(required=False)
 
 
 class IntPrimaryField(Primary, IntField):
-    pass
+    def __init__(self):
+        super(IntPrimaryField, self).__init__()
 
 
 class ModelMeta(type):
@@ -91,7 +102,12 @@ class ModelMeta(type):
             def __init__(self, *args, **kwargs):
                 super().__init__(self, *args, **kwargs)
 
+        class UniqueViolation(Exception):
+            def __init__(self, *args, **kwargs):
+                super().__init__(self, *args, **kwargs)
+
         namespace['DoesNotExist'] = DoesNotExist
+        namespace['UniqueViolation'] = UniqueViolation
 
         fields = {k: v for k, v in namespace.items()
                   if isinstance(v, Field)}
@@ -205,10 +221,8 @@ class QuerySet:
 
         return models
 
-    # async def __aiter__(self):
-    #     models = await self.get()
-    #     for model in models:
-    #         yield model
+    async def get_one(self):
+        return (await self.get())[0]
 
     def __await__(self):
         return self.get().__await__()
@@ -236,10 +250,19 @@ class QuerySet:
                 query += f' {k} = {gen.get_variable(v)} and'
             query = query[:-4]
 
-        query += ';'
+        query += ' RETURNING *;'
 
         async with self._pool.acquire() as conn:
-            await conn.execute(query, *gen.variables)
+            objects = await conn.fetch(query, *gen.variables)
+
+        models = []
+        for obj in objects:
+            fields = {}
+            for field in self._model._fields:
+                fields[field] = obj[field]
+            models.append(self._model(**fields))
+
+        return models
 
     async def delete(self):
         query = f'DELETE FROM {self._model._table_name}'
@@ -252,11 +275,19 @@ class QuerySet:
             for k, v in self._filter.items():
                 query += f' {k} = {gen.get_variable(v)} and'
             query = query[:-4]
-        query += ';'
+        query += ' RETURNING *;'
 
         async with self._pool.acquire() as conn:
-            await conn.execute(query, *gen.variables)
+            objects = await conn.fetch(query, *gen.variables)
 
+        models = []
+        for obj in objects:
+            fields = {}
+            for field in self._model._fields:
+                fields[field] = obj[field]
+            models.append(self._model(**fields))
+
+        return models
 
 class Manage:
     _pool = None
@@ -270,8 +301,7 @@ class Manage:
         self.model_cls = None
 
     def __get__(self, instance, owner):
-        if self.model_cls is None:
-            self.model_cls = owner
+        self.model_cls = owner
         return self
 
     async def create(self, **kwargs):
@@ -285,6 +315,9 @@ class Manage:
 
     async def get(self):
         return await QuerySet(self._pool, self.model_cls).get()
+
+    async def get_one(self):
+        return await QuerySet(self._pool, self.model_cls).get_one()
 
     def filter(self, **kwargs):
         return QuerySet(self._pool, self.model_cls, **kwargs)
@@ -318,7 +351,7 @@ class Model(metaclass=ModelMeta):
 
         self.__dict__['_is_valid'] = False
 
-    def is_valid(self) -> bool:
+    def is_valid(self):
         return self._is_valid
 
     def __bool__(self):
@@ -327,14 +360,10 @@ class Model(metaclass=ModelMeta):
     async def save(self):
         primary_field = self._primary
 
-        none_fields = []
-
         if getattr(self, primary_field) is not None:
+            get_primary = False
             query = f'INSERT INTO {self._table_name}('
             for k in self._fields:
-                if getattr(self, k) is None:
-                    none_fields.append(k)
-                    continue
                 query += f'{k},'
             query = query[:-1] + ') '
 
@@ -342,8 +371,6 @@ class Model(metaclass=ModelMeta):
 
             query += 'VALUES('
             for k in self._fields:
-                if getattr(self, k) is None:
-                    continue
                 v = getattr(self, k)
                 query += f'{gen.get_variable(v)},'
             query = query[:-1] + f')'
@@ -354,50 +381,38 @@ class Model(metaclass=ModelMeta):
                     continue
 
                 v = getattr(self, k)
-                if v is None:
-                    continue
 
                 query += f' {k} = {gen.get_variable(v)},'
-            query = query[:-1]
-
-            if len(none_fields) > 0:
-                query += ' RETURNING '
-                for field in none_fields:
-                    query += f'{field}, '
-                query = query[:-2]
-
-            query += ';'
+            query = query[:-1] + ';'
         else:
+            get_primary = True
             query = f'INSERT INTO {self._table_name}('
 
             gen = _QueryVariableGenerator()
 
             for k in self._fields:
-                if k == primary_field or getattr(self, k) is None:
-                    none_fields.append(k)
+                if k == primary_field:
                     continue
                 query += f'{k},'
             query = query[:-1] + ') '
 
             query += 'VALUES('
             for k in self._fields:
-                if k == primary_field or getattr(self, k) is None:
+                if k == primary_field:
                     continue
                 v = getattr(self, k)
                 query += f'{gen.get_variable(v)},'
-            query = query[:-1] + ') RETURNING '
-
-            for field in none_fields:
-                query += f'{field}, '
-            query = query[:-2] + ';'
+            query = query[:-1] + f') RETURNING {primary_field};'
 
         async with self.objects._pool.acquire() as conn:
-            if len(none_fields) > 0:
-                res = (await conn.fetch(query, *gen.variables))[0]
-                for field in none_fields:
-                    setattr(self, field, res[field])
-            else:
-                await conn.execute(query, *gen.variables)
+            try:
+                if get_primary:
+                    res = (await conn.fetch(query, *gen.variables))[0]
+                    setattr(self, primary_field, res[primary_field])
+                else:
+                    await conn.execute(query, *gen.variables)
+            except asyncpg.exceptions.UniqueViolationError:
+                raise self.UniqueViolation
 
     async def delete(self):
         primary_field = self._primary
@@ -406,8 +421,9 @@ class Model(metaclass=ModelMeta):
         if value is None:
             raise ValueError('Can\'t delete what\'s not saved')
 
-        await self.objects.filter(**{primary_field: value}).delete()
+        deleted_models = await self.objects.filter(**{primary_field: value}).delete()
         self._invalidate()
+        return deleted_models
 
 
 async def _orm_test():
@@ -516,6 +532,10 @@ async def _orm_test():
     # user.name = '2'
     # user.save()
     # user.delete()
+
+    user = await User.objects.get_one()
+    # print(dir(user))
+    print(user.__dict__)
 
 
 if __name__ == '__main__':
