@@ -36,8 +36,8 @@ class Crawler:
             raise ConnectionError('Couldn\'t connect to pg')
 
     async def _reset_db(self):
-        await self._es_db.drop(self._name)
-        await self._pg_db.drop(self._name)
+        await self._es_db.drop(self._es_coll)
+        await self._pg_db.drop(self._es_coll)
 
     def _reset_file(self):
         with open(self._file, 'w'):
