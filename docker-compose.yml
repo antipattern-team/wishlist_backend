@@ -73,3 +73,5 @@ services:
     depends_on:
       - api
       - swagger
+    volumes:
+      - cert/wishlist.kpacubo.xyz:/cert/wishlist.kpacubo.xyz
