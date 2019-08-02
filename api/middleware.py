@@ -8,7 +8,7 @@ def auth_mw(handler):
         if jwt_present:
             jwt_token = request.cookies.get("jwt_token")
             decoded_token = await request.app.auth_connection.call(jwt_token, 'decode')
-            if decoded_token == "":  # 0.5) if not valid, just delete it => rewrite the cookie
+            if decoded_token is None:  # 0.5) if not valid, just delete it => rewrite the cookie
                 jwt_present = False
 
         if jwt_present:

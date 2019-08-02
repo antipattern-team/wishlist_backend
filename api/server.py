@@ -32,9 +32,8 @@ if __name__ == '__main__':
 
         await Manage.init_conn(user=pg_user, password=pg_password,
                                database=pg_database, host=pg_host)
-        app.auth_connection = await AuthRpcClient().connect(
-            host=rmq_host,
-        )
+
+        app.auth_connection = await AuthRpcClient().connect(host=rmq_host)
 
         if debug:
             try:

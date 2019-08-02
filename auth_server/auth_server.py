@@ -2,24 +2,20 @@ import asyncio
 from functools import partial
 from aio_pika import connect, IncomingMessage, Exchange, Message
 import jwt
-from settings import *
 import time
+from utils import get_env  # temporary solution
 
 
 async def encode(msg):  # main authentication
     encoded_token = jwt.encode({'uid': msg}, auth_key, algorithm='HS256')
-    print(f" [.] got({jwt.decode(encoded_token, auth_key, algorithms=['HS256'])})")
-    await asyncio.sleep(0.05)
     return encoded_token
 
 
 async def decode(msg):
     try:
         decoded_token = jwt.decode(msg, auth_key, algorithms=['HS256'])
-        print(f" [.] got({decoded_token})")
-        await asyncio.sleep(0.05)
     except jwt.exceptions.PyJWTError:
-        decoded_token = ""
+        decoded_token = None
     return decoded_token
 
 
@@ -28,7 +24,7 @@ async def on_message(exchange: Exchange, message: IncomingMessage):
 
         msg = message.body.decode()
 
-        msg, method = msg.split(sep='.')
+        msg, method = msg.split(sep='/')
 
         if method == 'encode':
             response = str(await encode(msg))
@@ -69,6 +65,9 @@ async def main(loop, host):
 
 
 if __name__ == "__main__":
+    sleep = get_env('SLEEP', False)
+    rmq_host = get_env('RMQHOST', 'localhost')
+    auth_key = get_env('AUTHKEY', '123')
     if sleep:
         secs = 60
         print(f'Sleeping for {secs} secs')
@@ -77,5 +76,4 @@ if __name__ == "__main__":
 
     loop = asyncio.get_event_loop()
     loop.create_task(main(loop, rmq_host))
-    print(" [x] Awaiting RPC requests")
     loop.run_forever()

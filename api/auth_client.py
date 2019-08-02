@@ -1,8 +1,6 @@
 import asyncio
 import uuid
 from aio_pika import connect, IncomingMessage, Message
-import jwt
-from utils import get_env
 
 
 class AuthRpcClient:
@@ -31,7 +29,7 @@ class AuthRpcClient:
         future.set_result(message.body)
 
     async def call(self, msg, method):
-        msg = str(msg) + '.' + method
+        msg = str(msg) + '/' + method
         correlation_id = str(uuid.uuid4())
         future = asyncio.get_running_loop().create_future()
 
@@ -51,19 +49,20 @@ class AuthRpcClient:
         response_str = response.decode()
         if response_str.startswith("b'"):
             response_str = response_str[2:-1]
+        if response_str == "None":
+            return None
         return response_str
 
 
 async def _test():
-    auth_key = get_env('AUTHKEY', '123')
-    auth_rpc = await AuthRpcClient().connect(
-        host="localhost",
-    )
+    auth_rpc = await AuthRpcClient().connect(host="localhost")
     uid = "1234564546454"
-    print(f" [x] Requesting auth {uid}")
+    print(f" [x] Requesting encode {uid}")
     response_str = await auth_rpc.call(uid, "encode")
-    token = jwt.decode(response_str, auth_key, algorithms=['HS256'])
-    print(f" [.] Got {token}")
+    print(f" [.] Got {response_str}")
+    print(f" [x] Requesting decode {response_str}")
+    token = await auth_rpc.call("", "decode")
+    print(f" [.] Got {token, type(token)}")
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()

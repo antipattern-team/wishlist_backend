@@ -43,11 +43,6 @@ services:
   rabbitmq:
     restart: always
     image: rabbitmq:latest
-    ports:
-      # The standard AMQP protocol port
-      - 5674:5674
-      # HTTP management UI
-      - 15674:15674
 
   api:
     environment:
@@ -55,8 +50,7 @@ services:
       ESCOLL: 'products'
       PGHOST: 'postgres'
       RMQHOST: 'rabbitmq'
-      AUTHKEY: 'e5Grab2bwfcL6NWjTgEB'
-      APPSECRET: 'e5Grab2bwfcL6NWjTgEB'
+      APPSECRET: ${AUTHKEY}
 #     Provide this variable with the .env file
       POSTGRES_USER: 'server'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -76,7 +70,7 @@ services:
   auth:
     environment:
       RMQHOST: 'rabbitmq'
-      AUTHKEY: 'e5Grab2bwfcL6NWjTgEB'
+      AUTHKEY: ${AUTHKEY}
     build:
       context: './auth_server'
       dockerfile: './Dockerfile'

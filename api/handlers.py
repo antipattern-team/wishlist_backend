@@ -5,7 +5,7 @@ from vkutils import *
 from elastic import Elastic
 
 
-async def get_products_search(request):
+async def get_products_search(request: web.Request):
     resp = list()
     product_name = request.match_info['name']
     products = await Elastic.find_prefix(coll=Elastic.es_coll, param='name', value=product_name)
@@ -244,7 +244,7 @@ async def add_to_wishlist(request: web.Request, context):
 
 
 @auth_mw
-async def delete_from_wishlist(request, context):
+async def delete_from_wishlist(request: web.Request, context):
     uid = context['uid']
 
     try:
@@ -300,8 +300,7 @@ async def delete_from_wishlist(request, context):
     return web.json_response(resp)
 
 
-@auth_mw
-async def get_user_wishlist(request):
+async def get_user_wishlist(request: web.Request):
     resp = list()
     vkid = request.match_info['vkid']
 
@@ -351,7 +350,7 @@ async def get_user_wishlist(request):
 
 
 @auth_mw
-async def reserve_gift_for_user(request, context):
+async def reserve_gift_for_user(request: web.Request, context):
     gid = context['uid']
     vkid = request.match_info['vkid']
 
@@ -431,7 +430,7 @@ async def reserve_gift_for_user(request, context):
 
 
 @auth_mw
-async def cancel_gift_for_user(request, context):
+async def cancel_gift_for_user(request: web.Request, context):
     gid = context['uid']
     vkid = request.match_info['vkid']
 
