@@ -2,7 +2,7 @@ import asyncio
 import aiohttp
 import time
 
-from utils import Counter, IdleCounter
+from utils import *
 from workers import *
 from parser import Parser, parser_factory
 from db import DB, db_factory
