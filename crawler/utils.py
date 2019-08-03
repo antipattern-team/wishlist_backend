@@ -3,7 +3,10 @@ from os import environ
 
 def get_env(name: str, default):
     if name in environ:
-        return environ[name]
+        if default is not None:
+            return type(default)(environ[name])
+        else:
+            return environ[name]
 
     return default
 
