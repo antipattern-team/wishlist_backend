@@ -1,2 +1,2 @@
 FROM nginx
-COPY ${CONF_TYPE}/ /etc/nginx/
+COPY release_conf/ /etc/nginx/

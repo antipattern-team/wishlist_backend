@@ -64,8 +64,6 @@ services:
       - ./swagger:/swagger
 
   nginx:
-    environment:
-      CONF_TYPE: ${CONF_TYPE}
     build: './nginx'
     ports:
       - ${HTTP_PORT}:80
