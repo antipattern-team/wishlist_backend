@@ -72,4 +72,4 @@ services:
       - api
       - swagger
     volumes:
-      - ~/cert/wishlist.kpacubo.xyz:/cert/wishlist.kpacubo.xyz
+      - ~/cert:/cert
