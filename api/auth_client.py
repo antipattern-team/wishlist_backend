@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 from aio_pika import connect, IncomingMessage, Message
+import ast
 
 
 class AuthRpcClient:
@@ -61,7 +62,8 @@ async def _test():
     response_str = await auth_rpc.call(uid, "encode")
     print(f" [.] Got {response_str}")
     print(f" [x] Requesting decode {response_str}")
-    token = await auth_rpc.call("", "decode")
+    token = await auth_rpc.call(response_str, "decode")
+    token = ast.literal_eval(token)
     print(f" [.] Got {token, type(token)}")
 
 if __name__ == "__main__":
