@@ -9,7 +9,7 @@ services:
         network.host: '0'
         ES_JAVA_OPTS: '-Xms200m -Xmx200m'
     volumes:
-      - ../data/elasticsearch:/usr/share/elasticsearch/data:rw
+        - ../data/elasticsearch:/usr/share/elasticsearch/data:rw
 
   crawler:
     environment:
@@ -39,11 +39,18 @@ services:
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
       - ../data/postgres:/var/lib/postgresql/data
+
+  rabbitmq:
+    restart: always
+    image: rabbitmq:latest
+
   api:
     environment:
       ESHOST: 'elastic'
       ESCOLL: 'products'
       PGHOST: 'postgres'
+      RMQHOST: 'rabbitmq'
+      APPSECRET: ${AUTHKEY}
 #     Provide this variable with the .env file
       POSTGRES_USER: 'server'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -55,6 +62,20 @@ services:
     depends_on:
       - elastic
       - postgres
+      - rabbitmq
+    ports:
+#     Provide this variable with the .env file
+      - ${PORT}:8080
+
+  auth:
+    environment:
+      RMQHOST: 'rabbitmq'
+      AUTHKEY: ${AUTHKEY}
+    build:
+      context: './auth_server'
+      dockerfile: './Dockerfile'
+    depends_on:
+      - rabbitmq
 
   swagger:
     environment:

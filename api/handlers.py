@@ -1,10 +1,11 @@
 from aiohttp import web
 from middleware import auth_mw
 from models import *
+from vkutils import *
 from elastic import Elastic
 
 
-async def get_products_search(request):
+async def get_products_search(request: web.Request):
     resp = list()
     product_name = request.match_info['name']
     products = await Elastic.find_prefix(coll=Elastic.es_coll, param='name', value=product_name)
@@ -31,7 +32,7 @@ async def get_products_search(request):
     return web.json_response(resp)
 
 
-async def get_products_popular(request):
+async def get_products_popular(request: web.Request):
     resp = list()
 
     try:
@@ -61,7 +62,7 @@ async def get_products_popular(request):
 
 
 @auth_mw
-async def get_friends(request, context):
+async def get_friends(request: web.Request, context):
     resp = list()
     uid = context['uid']
     try:
@@ -86,7 +87,7 @@ async def get_friends(request, context):
 
 
 @auth_mw
-async def get_friends_search(request, context):
+async def get_friends_search(request: web.Request, context):
     resp = list()
     friend_name = request.match_info['name']
     uid = context['uid']
@@ -109,7 +110,7 @@ async def get_friends_search(request, context):
 
 
 @auth_mw
-async def get_gifts(request, context):
+async def get_gifts(request: web.Request, context):
     resp = list()
     uid = context['uid']
 
@@ -120,7 +121,7 @@ async def get_gifts(request, context):
 
     for gift in gifts:
         user = await User.objects.filter(uid=gift.uid).get_one()
-        product = await Products.objects.filter(pid=gift.pid).get_one()
+        product = await Product.objects.filter(pid=gift.pid).get_one()
 
         resp.append({
             'user': {
@@ -147,7 +148,7 @@ async def get_gifts(request, context):
 
 
 @auth_mw
-async def get_wishlist(request, context):
+async def get_wishlist(request: web.Request, context):
     resp = list()
     uid = context['uid']
 
@@ -187,7 +188,7 @@ async def get_wishlist(request, context):
 
 
 @auth_mw
-async def add_to_wishlist(request, context):
+async def add_to_wishlist(request: web.Request, context):
     uid = context['uid']
 
     try:
@@ -243,7 +244,7 @@ async def add_to_wishlist(request, context):
 
 
 @auth_mw
-async def delete_from_wishlist(request, context):
+async def delete_from_wishlist(request: web.Request, context):
     uid = context['uid']
 
     try:
@@ -299,7 +300,7 @@ async def delete_from_wishlist(request, context):
     return web.json_response(resp)
 
 
-async def get_user_wishlist(request):
+async def get_user_wishlist(request: web.Request):
     resp = list()
     vkid = request.match_info['vkid']
 
@@ -349,7 +350,7 @@ async def get_user_wishlist(request):
 
 
 @auth_mw
-async def reserve_gift_for_user(request, context):
+async def reserve_gift_for_user(request: web.Request, context):
     gid = context['uid']
     vkid = request.match_info['vkid']
 
@@ -429,7 +430,7 @@ async def reserve_gift_for_user(request, context):
 
 
 @auth_mw
-async def cancel_gift_for_user(request, context):
+async def cancel_gift_for_user(request: web.Request, context):
     gid = context['uid']
     vkid = request.match_info['vkid']
 
@@ -506,3 +507,30 @@ async def cancel_gift_for_user(request, context):
     }
     
     return web.json_response(resp)
+
+
+async def login(request: web.Request):
+    # The needed info is already obtained from frontend request
+    # All we need is to check sign validity
+    vksign = request.query.get("sign")
+    if vksign is None:
+        return unauthorized_response()
+
+    vkquery = request.query
+    if not vk_validation(query=vkquery, secret=request.app.secret):
+        return unauthorized_response()
+
+    try:
+        uid = await add_user(request)
+    except ErrorUnauthorized:
+        return unauthorized_response()
+
+    jwt_token = await request.app.auth_connection.call(uid, 'encode')
+    resp = {
+        'result': 'success',
+        'type': 'login'
+    }
+
+    response = web.json_response(resp)
+    response.set_cookie(name="jwt_token", value=jwt_token)
+    return response

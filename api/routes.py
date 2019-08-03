@@ -13,4 +13,5 @@ routes = [
     ('GET',    '/wishlist/{vkid}',          get_user_wishlist,       'user_wishlist'),
     ('POST',   '/wishlist/{vkid}',          reserve_gift_for_user,   'user_gift_add'),
     ('DELETE', '/wishlist/{vkid}',          cancel_gift_for_user,    'user_gift_remove'),
+    ('POST',   '/login',                    login,                   'login')
 ]

@@ -1,6 +1,8 @@
 import time
 from aiohttp import web
 from routes import routes
+from auth_client import AuthRpcClient
+from models import Manage
 from models import *
 from utils import get_env
 from elastic import Elastic
@@ -17,6 +19,8 @@ if __name__ == '__main__':
     pg_password = get_env('POSTGRES_PASSWORD', '')
     pg_user = get_env('POSTGRES_USER', 'postgres')
 
+    rmq_host = get_env('RMQHOST', 'localhost')
+
     if sleep:
         secs = 65
         print(f'Sleeping for {secs} secs')
@@ -28,6 +32,8 @@ if __name__ == '__main__':
 
         await Manage.init_conn(user=pg_user, password=pg_password,
                                database=pg_database, host=pg_host)
+
+        app.auth_connection = await AuthRpcClient().connect(host=rmq_host)
 
         if debug:
             try:
@@ -60,6 +66,8 @@ if __name__ == '__main__':
 
     app = web.Application()
     app.on_startup.append(on_startup)
+
+    app.secret = get_env('APPSECRET', '123')
 
     for method, route, handler, name in routes:
         app.router.add_route(method, route, handler, name=name)

@@ -1,36 +1,24 @@
-from aiohttp import web
+from vkutils import *
 
 
-@web.middleware
 def auth_mw(handler):
-    async def func(request):
-        # uid = None
-        # if 'uid' not in request.cookies.keys():
-        #     uid = 1  # RMQ.request()
-        #     response.set_cookie(name='uid', value=uid, max_age=60)
-        #     print('cookie-set')
-        # else:
-        #     print('cookie-get')
-        #     # ORM.validation()
-        context = {}
+    async def func(request: web.Request):
+        jwt_present = "jwt_token" in request.cookies.keys()
+        # 0) check if jwt_token is_valid
+        if jwt_present:
+            jwt_token = request.cookies.get("jwt_token")
+            decoded_token = await request.app.auth_connection.call(jwt_token, 'decode')
+            if decoded_token is None:  # 0.5) if not valid, just delete it => rewrite the cookie
+                jwt_present = False
 
-        if 'token' in request.cookies.keys():
-            token = request.cookies['token']
-            # todo: send token
-            # todo: get uid
-            uid = 90000
+        if jwt_present:
+            uid = decoded_token.get("uid")
         else:
-            # todo: somehow get vkid
-            # todo: send vkid
-            # todo: get uid
-            # todo: get token
-            token = 'token'
-            uid = 90000
+            return unauthorized_response()
 
-        context['uid'] = uid
+        context = {'uid': uid}
         response = await handler(request, context)
 
-        response.cookies['token'] = token
         return response
 
     return func
