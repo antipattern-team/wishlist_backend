@@ -79,12 +79,12 @@ services:
       - ./swagger:/swagger
 
   nginx:
-    build: './nginx'
+    build:
+      context: './nginx'
+      dockerfile: './Dockerfile.local'
     ports:
-      - 80:80
-      - 443:443
+      - 8080:80
+      - 9090:90
     depends_on:
       - api
       - swagger
-    volumes:
-      - ~/cert:/cert
