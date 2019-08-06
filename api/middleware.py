@@ -1,4 +1,5 @@
 from vkutils import *
+import ast
 
 
 def auth_mw(handler):
@@ -12,6 +13,7 @@ def auth_mw(handler):
                 jwt_present = False
 
         if jwt_present:
+            decoded_token = ast.literal_eval(decoded_token)
             uid = decoded_token.get("uid")
         else:
             return unauthorized_response()
