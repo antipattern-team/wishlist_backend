@@ -75,6 +75,10 @@ async def saver(dbs: List[DB], coll: str, input: asyncio.Queue, idx_c: Counter,
             idx_c.inc()
             count = idx_c.count()
 
+            if count == 12000:
+                with open('data/save.txt', 'w') as f:
+                    f.write(str(count))
+
             product['price'] = int(price_re.match(product['price'].replace(" ", "")).group(0))
 
             if debug:

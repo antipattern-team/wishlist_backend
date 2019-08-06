@@ -94,17 +94,29 @@ if __name__ == '__main__':
     pg_password = get_env('POSTGRES_PASSWORD', '')
     pg_user = get_env('POSTGRES_USER', 'postgres')
 
-    if sleep:
-        secs = 60
-        print(f'Sleeping for {secs} secs')
-        time.sleep(secs)
-        print('Slept')
+    empty = False
+    try:
+        with open('data/save.txt', 'r') as f:
+            if f.read() == '':
+                empty = True
+    except FileNotFoundError:
+        empty = True
 
-    crawler = Crawler(root=root, parser=parser, fps=fps,
-                      es_db=es, pg_db=pg, es_host=es_host, pg_host=pg_host,
-                      es_coll=es_coll, pg_db_name=pg_database, pg_db_user=pg_user, pg_db_pass=pg_password,
-                      debug=debug, filename=filename)
+    if empty:
+        if sleep:
+            secs = 60
+            print(f'Sleeping for {secs} secs')
+            time.sleep(secs)
+            print('Slept')
 
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(crawler.run())
+        crawler = Crawler(root=root, parser=parser, fps=fps,
+                          es_db=es, pg_db=pg, es_host=es_host, pg_host=pg_host,
+                          es_coll=es_coll, pg_db_name=pg_database, pg_db_user=pg_user, pg_db_pass=pg_password,
+                          debug=debug, filename=filename)
+
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(crawler.run())
+    else:
+        if debug:
+            print('exiting due to having products downloaded')
 
