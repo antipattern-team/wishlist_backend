@@ -13,9 +13,7 @@ class ErrorUnauthorized(Exception):
 
 
 def unauthorized_response():
-    resp = web.Response()
-    resp.set_status(status=401)
-    return resp
+    return web.json_response(status=401)
 
 
 def vk_validation(*, query: dict, secret: str) -> bool:

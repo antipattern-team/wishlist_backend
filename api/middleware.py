@@ -1,5 +1,6 @@
 from vkutils import *
 import ast
+from aiohttp import web
 
 
 def auth_mw(handler):
