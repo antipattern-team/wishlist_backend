@@ -9,7 +9,7 @@ routes = [
     ('GET',    '/gifts',                    get_gifts,               'gifts'),
     ('GET',    '/wishlist',                 get_wishlist,            'wishlist'),
     ('POST',   '/wishlist',                 add_to_wishlist,         'wishlist_add'),
-    ('DELETE', '/wishlist',                 delete_from_wishlist,    'wishlist_remove'),
+    ('DELETE', '/wishlist',                 remove_from_wishlist,    'wishlist_remove'),
     ('GET',    '/wishlist/{vkid}',          get_user_wishlist,       'user_wishlist'),
     ('POST',   '/wishlist/{vkid}',          reserve_gift_for_user,   'user_gift_add'),
     ('DELETE', '/wishlist/{vkid}',          cancel_gift_for_user,    'user_gift_remove'),

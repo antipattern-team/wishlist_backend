@@ -244,7 +244,7 @@ async def add_to_wishlist(request: web.Request, context):
 
 
 @auth_mw
-async def delete_from_wishlist(request: web.Request, context):
+async def remove_from_wishlist(request: web.Request, context):
     uid = context['uid']
 
     try:
@@ -270,7 +270,7 @@ async def delete_from_wishlist(request: web.Request, context):
         return web.json_response(body, status=400)
 
     try:
-        product = await Product.objects.filter(pid=pid)
+        product = await Product.objects.filter(pid=pid).get_one()
     except Product.DoesNotExist:
         body = {
             'result': 'fail',
@@ -399,7 +399,7 @@ async def reserve_gift_for_user(request: web.Request, context):
         return web.json_response(body, status=404)
 
     try:
-        wants = await Wants.objects.filter(uid=user.uid, pid=pid)
+        wants = await Wants.objects.filter(uid=user.uid, pid=pid).get_one()
     except Wants.DoesNotExist:
         body = {
             'result': 'fail',
@@ -479,7 +479,7 @@ async def cancel_gift_for_user(request: web.Request, context):
         return web.json_response(body, status=404)
 
     try:
-        wants = await Wants.objects.filter(uid=user.uid, pid=pid)
+        wants = await Wants.objects.filter(uid=user.uid, pid=pid).get_one()
     except Wants.DoesNotExist:
         body = {
             'result': 'fail',
